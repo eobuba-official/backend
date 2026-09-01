@@ -1,0 +1,69 @@
+# Copy this file to application-local.properties and keep the copied file local.
+# Activate it with: SPRING_PROFILES_ACTIVE=local
+# Never commit real credentials. Replace every CHANGE_ME value locally.
+
+# Server / frontend
+server.port=8080
+piggyback.cors.allowed-origins=http://localhost:5173,http://localhost:3000
+
+# MySQL
+spring.datasource.url=jdbc:mysql://localhost:3306/piggyback?serverTimezone=Asia/Seoul&characterEncoding=UTF-8
+spring.datasource.username=root
+spring.datasource.password=CHANGE_ME
+
+# Hackathon OpenAI-compatible proxy
+# The api-key value is the Bearer team token issued by the organizers.
+piggyback.integrations.llm.provider=openai-compatible-proxy
+piggyback.integrations.llm.base-url=https://port-0-llm-proxy-node-mrlu0vim5f938376.sel3.cloudtype.app/v1
+piggyback.integrations.llm.api-key=CHANGE_ME_TEAM_TOKEN
+piggyback.integrations.llm.chat-completions-path=/chat/completions
+piggyback.integrations.llm.responses-path=/responses
+piggyback.integrations.llm.embeddings-path=/embeddings
+piggyback.integrations.llm.auth-scheme=Bearer
+piggyback.integrations.llm.primary-model=gpt-5-nano
+piggyback.integrations.llm.fallback-model=gpt-4o-mini
+piggyback.integrations.llm.connect-timeout=3s
+piggyback.integrations.llm.read-timeout=15s
+
+# Final presentation switch (official OpenAI):
+# piggyback.integrations.llm.provider=openai
+# piggyback.integrations.llm.base-url=https://api.openai.com/v1
+# piggyback.integrations.llm.api-key=CHANGE_ME_OPENAI_API_KEY
+
+# NAVER Cloud CLOVA Speech Recognition (CSR) - short-form STT
+# API headers: x-ncp-apigw-api-key-id and x-ncp-apigw-api-key
+piggyback.integrations.clova-csr.endpoint=https://naveropenapi.apigw.ntruss.com/recog/v1/stt
+piggyback.integrations.clova-csr.api-key-id=CHANGE_ME
+piggyback.integrations.clova-csr.api-key=CHANGE_ME
+piggyback.integrations.clova-csr.language=Kor
+piggyback.integrations.clova-csr.connect-timeout=3s
+piggyback.integrations.clova-csr.read-timeout=65s
+piggyback.integrations.clova-csr.max-audio-size=10MB
+
+# Financial Map - branch/ATM master data
+piggyback.integrations.finmap.base-url=https://openapi.kftc.or.kr
+piggyback.integrations.finmap.api-key=CHANGE_ME
+
+# Seoul real-time city data
+piggyback.integrations.seoul-city-data.base-url=http://openapi.seoul.go.kr:8088
+piggyback.integrations.seoul-city-data.api-key=CHANGE_ME
+
+# Road-name address / coordinate API
+piggyback.integrations.juso.base-url=https://business.juso.go.kr/addrlink/addrCoordApi.do
+piggyback.integrations.juso.confirmation-key=CHANGE_ME
+
+# Recommendation tuning - demo defaults; confirm with the recommendation owner.
+piggyback.recommendation.distance-weight=0.4
+piggyback.recommendation.waiting-weight=0.6
+piggyback.recommendation.result-limit=3
+piggyback.recommendation.congestion-ttl=10m
+piggyback.recommendation.search-radius-km=10
+
+# Classification tuning - demo defaults; validate against the test utterance set.
+piggyback.classification.confirmation-threshold=0.8
+piggyback.classification.candidate-limit=3
+
+# Local diagnostics
+spring.jpa.show-sql=true
+spring.jpa.properties.hibernate.format_sql=true
+logging.level.com.piggyback.backend=DEBUG
