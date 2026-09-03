@@ -11,6 +11,10 @@ spring.datasource.url=jdbc:mysql://localhost:3306/piggyback?serverTimezone=Asia/
 spring.datasource.username=root
 spring.datasource.password=CHANGE_ME
 
+# Auth (local dev only - use a random long secret, never commit real values)
+abuba.auth.jwt-secret=CHANGE_ME_RANDOM_SECRET_AT_LEAST_32_CHARS
+abuba.auth.expose-mock-code=true
+
 # Hackathon OpenAI-compatible proxy
 # The api-key value is the Bearer team token issued by the organizers.
 piggyback.integrations.llm.provider=openai-compatible-proxy
