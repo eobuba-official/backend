@@ -1,0 +1,14 @@
+{
+  "name": "eobuba-backend",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "commit": "node scripts/commit.js",
+    "prepare": "husky"
+  },
+  "devDependencies": {
+    "@commitlint/cli": "^21.2.2",
+    "@commitlint/config-conventional": "^21.2.2",
+    "husky": "^9.1.7"
+  }
+}
