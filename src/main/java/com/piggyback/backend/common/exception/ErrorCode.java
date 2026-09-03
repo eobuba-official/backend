@@ -16,6 +16,8 @@ public enum ErrorCode {
     INVALID_STATE(HttpStatus.CONFLICT, "현재 상태에서 처리할 수 없는 요청입니다."),
     ALREADY_REGISTERED(HttpStatus.CONFLICT, "이미 가입된 사용자입니다."),
     NO_WARNING_TO_DISMISS(HttpStatus.CONFLICT, "해제할 사기 경고가 없습니다."),
+    NOT_FOUND(HttpStatus.NOT_FOUND, "요청한 경로를 찾을 수 없습니다."),
+    METHOD_NOT_ALLOWED(HttpStatus.METHOD_NOT_ALLOWED, "지원하지 않는 HTTP 메서드입니다."),
     INTERNAL_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "서버 내부 오류가 발생했습니다."),
     LLM_ERROR(HttpStatus.BAD_GATEWAY, "분석 처리 중 오류가 발생했습니다.");
 

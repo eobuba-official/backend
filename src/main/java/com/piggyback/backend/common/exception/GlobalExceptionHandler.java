@@ -2,7 +2,6 @@ package com.piggyback.backend.common.exception;
 
 import com.piggyback.backend.common.response.ApiResponse;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.validation.FieldError;
@@ -58,14 +57,14 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
     public ResponseEntity<ApiResponse<Void>> handleMethodNotSupported(HttpRequestMethodNotSupportedException e) {
-        return ResponseEntity.status(HttpStatus.METHOD_NOT_ALLOWED)
-                .body(ApiResponse.error(ErrorCode.INVALID_INPUT, "지원하지 않는 HTTP 메서드입니다."));
+        return ResponseEntity.status(ErrorCode.METHOD_NOT_ALLOWED.getStatus())
+                .body(ApiResponse.error(ErrorCode.METHOD_NOT_ALLOWED));
     }
 
     @ExceptionHandler(NoResourceFoundException.class)
     public ResponseEntity<ApiResponse<Void>> handleNoResourceFound(NoResourceFoundException e) {
-        return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                .body(ApiResponse.error(ErrorCode.INVALID_INPUT, "요청한 경로를 찾을 수 없습니다."));
+        return ResponseEntity.status(ErrorCode.NOT_FOUND.getStatus())
+                .body(ApiResponse.error(ErrorCode.NOT_FOUND));
     }
 
     @ExceptionHandler(Exception.class)
