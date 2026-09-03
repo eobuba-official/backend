@@ -55,6 +55,8 @@ class AuthServiceTest {
 
     @Test
     void 인증번호_발송_시_6자리_코드와_TTL을_반환한다() {
+        when(smsVerificationRepository.findTopByPhoneNumberOrderByCreatedAtDesc(PHONE))
+                .thenReturn(Optional.empty());
         when(userRepository.existsByPhoneNumber(PHONE)).thenReturn(false);
         when(smsVerificationRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
@@ -62,6 +64,44 @@ class AuthServiceTest {
 
         assertThat(response.expiresInSeconds()).isEqualTo(180);
         assertThat(response.mockCode()).matches("\\d{6}");
+    }
+
+    @Test
+    void 쿨다운_내_재발송_요청은_SMS_REQUEST_COOLDOWN이다() {
+        when(smsVerificationRepository.findTopByPhoneNumberOrderByCreatedAtDesc(PHONE))
+                .thenReturn(Optional.of(savedVerification("123456", LocalDateTime.now().plusMinutes(3))));
+
+        assertThatThrownBy(() -> authService.requestSmsCode(PHONE))
+                .isInstanceOf(BusinessException.class)
+                .extracting("errorCode").isEqualTo(ErrorCode.SMS_REQUEST_COOLDOWN);
+    }
+
+    @Test
+    void 이미_검증에_사용된_인증번호는_재사용할_수_없다() {
+        SmsVerification verification = savedVerification("123456", LocalDateTime.now().plusMinutes(3));
+        verification.markVerified();
+        when(smsVerificationRepository.findTopByPhoneNumberOrderByCreatedAtDesc(PHONE))
+                .thenReturn(Optional.of(verification));
+
+        assertThatThrownBy(() -> authService.verifySmsCode(PHONE, "123456"))
+                .isInstanceOf(BusinessException.class)
+                .extracting("errorCode").isEqualTo(ErrorCode.INVALID_SMS_CODE);
+    }
+
+    @Test
+    void 검증_5회_실패_후에는_올바른_코드도_거부된다() {
+        SmsVerification verification = savedVerification("123456", LocalDateTime.now().plusMinutes(3));
+        when(smsVerificationRepository.findTopByPhoneNumberOrderByCreatedAtDesc(PHONE))
+                .thenReturn(Optional.of(verification));
+
+        for (int i = 0; i < 5; i++) {
+            assertThatThrownBy(() -> authService.verifySmsCode(PHONE, "999999"))
+                    .isInstanceOf(BusinessException.class);
+        }
+
+        assertThatThrownBy(() -> authService.verifySmsCode(PHONE, "123456"))
+                .isInstanceOf(BusinessException.class)
+                .extracting("errorCode").isEqualTo(ErrorCode.INVALID_SMS_CODE);
     }
 
     @Test

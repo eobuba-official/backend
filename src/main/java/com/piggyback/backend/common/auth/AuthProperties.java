@@ -12,6 +12,8 @@ import org.springframework.stereotype.Component;
 public class AuthProperties {
 
     private int smsCodeTtlSeconds = 180;
+    private int smsRequestCooldownSeconds = 30;
+    private int smsMaxVerifyAttempts = 5;
     private int accessTokenTtlHours = 24;
     private int signupTokenTtlMinutes = 10;
     private String jwtSecret;

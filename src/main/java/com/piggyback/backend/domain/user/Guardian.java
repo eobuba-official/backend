@@ -36,13 +36,13 @@ public class Guardian {
     private String phoneNumber;
 
     @Column(nullable = false, length = 20)
-    private String relation;
+    private GuardianRelation relation;
 
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
     @Builder
-    private Guardian(User user, String name, String phoneNumber, String relation) {
+    private Guardian(User user, String name, String phoneNumber, GuardianRelation relation) {
         this.user = user;
         this.name = name;
         this.phoneNumber = phoneNumber;

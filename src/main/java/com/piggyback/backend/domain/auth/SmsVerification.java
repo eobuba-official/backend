@@ -40,6 +40,9 @@ public class SmsVerification {
     @Column(nullable = false)
     private boolean verified;
 
+    @Column(name = "attempt_count", nullable = false)
+    private int attemptCount;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
@@ -50,7 +53,20 @@ public class SmsVerification {
         this.purpose = purpose;
         this.expiresAt = expiresAt;
         this.verified = false;
+        this.attemptCount = 0;
         this.createdAt = LocalDateTime.now();
+    }
+
+    public boolean isRequestedWithin(LocalDateTime now, int cooldownSeconds) {
+        return now.isBefore(createdAt.plusSeconds(cooldownSeconds));
+    }
+
+    public boolean hasExceededAttempts(int maxAttempts) {
+        return attemptCount >= maxAttempts;
+    }
+
+    public void increaseAttemptCount() {
+        this.attemptCount++;
     }
 
     public boolean isExpired(LocalDateTime now) {

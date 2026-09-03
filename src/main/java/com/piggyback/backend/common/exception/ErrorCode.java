@@ -11,6 +11,7 @@ public enum ErrorCode {
     INVALID_INPUT(HttpStatus.BAD_REQUEST, "잘못된 입력입니다."),
     UNAUTHORIZED(HttpStatus.UNAUTHORIZED, "인증이 필요합니다."),
     INVALID_SMS_CODE(HttpStatus.UNAUTHORIZED, "인증번호가 올바르지 않습니다."),
+    SMS_REQUEST_COOLDOWN(HttpStatus.TOO_MANY_REQUESTS, "잠시 후 다시 인증번호를 요청해주세요."),
     CONSULTATION_NOT_FOUND(HttpStatus.NOT_FOUND, "상담을 찾을 수 없습니다."),
     TASK_TYPE_NOT_FOUND(HttpStatus.NOT_FOUND, "업무 유형을 찾을 수 없습니다."),
     INVALID_STATE(HttpStatus.CONFLICT, "현재 상태에서 처리할 수 없는 요청입니다."),
