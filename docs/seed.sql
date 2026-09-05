@@ -3,7 +3,8 @@
 --
 -- 혼잡도 패턴 (팀 확정, 2026-09-03):
 --   오전(09~11시) 한가 / 점심·오후(12~16시) 혼잡 — 시연 시 "내일 오전 추천" 문장이 성립하도록 설계.
---   congestion_slot에 데이터가 없는 조합은 기본 대기 15분(application.yml abuba.recommendation.default-wait-minutes).
+--   congestion_slot에 데이터가 없는 조합은 기본 대기 15분
+--   (application.properties piggyback.recommendation.default-wait-minutes).
 
 SET FOREIGN_KEY_CHECKS = 0;
 DELETE FROM `recommendation`;
