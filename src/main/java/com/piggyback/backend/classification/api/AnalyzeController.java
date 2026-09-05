@@ -2,6 +2,7 @@ package com.piggyback.backend.classification.api;
 
 import com.piggyback.backend.classification.application.AnalyzeResult;
 import com.piggyback.backend.classification.application.TaskClassificationWorkflow;
+import com.piggyback.backend.common.auth.JwtAuthFilter;
 import com.piggyback.backend.common.exception.BusinessException;
 import com.piggyback.backend.common.exception.ErrorCode;
 import com.piggyback.backend.common.response.ApiResponse;
@@ -22,7 +23,7 @@ public class AnalyzeController {
 
     @PostMapping("/analyze")
     public ApiResponse<AnalyzeResult> analyze(
-            @RequestAttribute(value = "userId", required = false) Long userId,
+            @RequestAttribute(value = JwtAuthFilter.USER_ID_ATTRIBUTE, required = false) Long userId,
             @Valid @RequestBody AnalyzeRequest request
     ) {
         if (userId == null) {

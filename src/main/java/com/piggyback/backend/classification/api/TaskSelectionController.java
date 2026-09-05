@@ -2,6 +2,7 @@ package com.piggyback.backend.classification.api;
 
 import com.piggyback.backend.classification.application.SelectedTaskOutcome;
 import com.piggyback.backend.classification.application.TaskSelectionWorkflow;
+import com.piggyback.backend.common.auth.JwtAuthFilter;
 import com.piggyback.backend.common.exception.BusinessException;
 import com.piggyback.backend.common.exception.ErrorCode;
 import com.piggyback.backend.common.response.ApiResponse;
@@ -27,7 +28,7 @@ public class TaskSelectionController {
 
     @PostMapping("/{consultationId}/task-selection")
     public ApiResponse<SelectedTaskOutcome> select(
-            @RequestAttribute(value = "userId", required = false) Long userId,
+            @RequestAttribute(value = JwtAuthFilter.USER_ID_ATTRIBUTE, required = false) Long userId,
             @PathVariable UUID consultationId,
             @Valid @RequestBody TaskSelectionRequest request
     ) {

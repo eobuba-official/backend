@@ -47,7 +47,7 @@ class TaskSelectionControllerTest {
         UUID consultationId = UUID.randomUUID();
 
         mockMvc.perform(post("/api/v1/consultations/{id}/task-selection", consultationId)
-                        .requestAttr("userId", 7L)
+                        .requestAttr("authenticatedUserId", 7L)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"taskTypeCode\":\"DEPOSIT_EARLY_CLOSE\"}"))
                 .andExpect(status().isOk())
@@ -67,7 +67,7 @@ class TaskSelectionControllerTest {
         MockMvc mockMvc = mockMvc(store, mock(VisitDecisionService.class));
 
         mockMvc.perform(post("/api/v1/consultations/{id}/task-selection", UUID.randomUUID())
-                        .requestAttr("userId", 7L)
+                        .requestAttr("authenticatedUserId", 7L)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"taskTypeCode\":\"ACCOUNT_TRANSFER\"}"))
                 .andExpect(status().isNotFound())
@@ -83,7 +83,7 @@ class TaskSelectionControllerTest {
         );
 
         mockMvc.perform(post("/api/v1/consultations/{id}/task-selection", UUID.randomUUID())
-                        .requestAttr("userId", 7L)
+                        .requestAttr("authenticatedUserId", 7L)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"taskTypeCode\":\" \"}"))
                 .andExpect(status().isBadRequest())

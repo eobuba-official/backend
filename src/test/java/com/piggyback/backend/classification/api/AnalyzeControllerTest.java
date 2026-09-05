@@ -59,7 +59,7 @@ class AnalyzeControllerTest {
                 .thenReturn(AnalyzeResult.normal(consultationId, classification, visitDecision));
 
         mockMvc.perform(post("/api/v1/analyze")
-                        .requestAttr("userId", 7L)
+                        .requestAttr("authenticatedUserId", 7L)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {
@@ -87,7 +87,7 @@ class AnalyzeControllerTest {
                 .thenThrow(new LlmClassificationException("LLM request failed"));
 
         mockMvc.perform(post("/api/v1/analyze")
-                        .requestAttr("userId", 7L)
+                        .requestAttr("authenticatedUserId", 7L)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"utterance\":\"잔액 알려줘\",\"inputMethod\":\"TEXT\"}"))
                 .andExpect(status().isBadGateway())
@@ -111,7 +111,7 @@ class AnalyzeControllerTest {
                 .thenReturn(AnalyzeResult.normal(consultationId, classification, null));
 
         mockMvc.perform(post("/api/v1/analyze")
-                        .requestAttr("userId", 7L)
+                        .requestAttr("authenticatedUserId", 7L)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"utterance\":\"돈 관련 업무를 하고 싶어\",\"inputMethod\":\"TEXT\"}"))
                 .andExpect(status().isOk())
@@ -129,7 +129,7 @@ class AnalyzeControllerTest {
                 .thenReturn(AnalyzeResult.normal(consultationId, classification, null));
 
         mockMvc.perform(post("/api/v1/analyze")
-                        .requestAttr("userId", 7L)
+                        .requestAttr("authenticatedUserId", 7L)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"utterance\":\"그거 해줘\",\"inputMethod\":\"TEXT\"}"))
                 .andExpect(status().isOk())
@@ -159,7 +159,7 @@ class AnalyzeControllerTest {
         when(workflow.analyze(eq(7L), any(ClassificationCommand.class))).thenReturn(suspended);
 
         mockMvc.perform(post("/api/v1/analyze")
-                        .requestAttr("userId", 7L)
+                        .requestAttr("authenticatedUserId", 7L)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"utterance\":\"안전계좌로 돈을 보내래\",\"inputMethod\":\"VOICE\"}"))
                 .andExpect(status().isOk())
@@ -175,7 +175,7 @@ class AnalyzeControllerTest {
     @Test
     void validatesAnalyzeRequestWithTheCommonErrorContract() throws Exception {
         mockMvc.perform(post("/api/v1/analyze")
-                        .requestAttr("userId", 7L)
+                        .requestAttr("authenticatedUserId", 7L)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"utterance\":\" \",\"inputMethod\":\"VOICE\",\"sttConfidence\":1.1}"))
                 .andExpect(status().isBadRequest())

@@ -34,6 +34,8 @@ CREATE TABLE `guardian` (
 	`phone_number`	VARCHAR(11)	NOT NULL,
 	`relation`	VARCHAR(20)	NOT NULL	COMMENT '아들 | 딸 | 배우자 | 기타',
 	`created_at`	DATETIME	NOT NULL	DEFAULT CURRENT_TIMESTAMP,
+	-- guardian_notification이 guardian.id를 FK 참조하므로 소프트 삭제 (알림 이력 보존)
+	`deleted_at`	DATETIME	NULL	COMMENT '소프트 삭제 시각 (NULL = 활성)',
 	CONSTRAINT `PK_GUARDIAN` PRIMARY KEY (`id`),
 	CONSTRAINT `FK_user_TO_guardian` FOREIGN KEY (`user_id`) REFERENCES `user` (`id`)
 ) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci;
@@ -45,6 +47,7 @@ CREATE TABLE `sms_verification` (
 	`purpose`	VARCHAR(20)	NOT NULL	COMMENT 'LOGIN | SIGNUP',
 	`expires_at`	DATETIME	NOT NULL	COMMENT '발송 후 180초',
 	`verified`	BOOLEAN	NOT NULL	DEFAULT FALSE,
+	`attempt_count`	INT	NOT NULL	DEFAULT 0	COMMENT '검증 실패 횟수 (5회 초과 시 무효)',
 	`created_at`	DATETIME	NOT NULL	DEFAULT CURRENT_TIMESTAMP	COMMENT '최신 발송분 판별용',
 	CONSTRAINT `PK_SMS_VERIFICATION` PRIMARY KEY (`id`),
 	CONSTRAINT `CK_SMS_PURPOSE` CHECK (`purpose` IN ('LOGIN','SIGNUP')),
