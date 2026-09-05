@@ -41,6 +41,10 @@ public class Guardian {
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
+    // guardian_notification이 guardian.id를 FK로 참조하므로 하드 삭제 대신 소프트 삭제한다.
+    @Column(name = "deleted_at")
+    private LocalDateTime deletedAt;
+
     @Builder
     private Guardian(User user, String name, String phoneNumber, GuardianRelation relation) {
         this.user = user;
@@ -48,5 +52,9 @@ public class Guardian {
         this.phoneNumber = phoneNumber;
         this.relation = relation;
         this.createdAt = LocalDateTime.now();
+    }
+
+    public void softDelete() {
+        this.deletedAt = LocalDateTime.now();
     }
 }

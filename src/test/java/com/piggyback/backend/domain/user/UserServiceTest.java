@@ -53,7 +53,7 @@ class UserServiceTest {
         Guardian guardian = Guardian.builder()
                 .user(user).name("김아들").phoneNumber("01098765432").relation(GuardianRelation.SON)
                 .build();
-        when(guardianRepository.findAllByUserId(USER_ID)).thenReturn(List.of(guardian));
+        when(guardianRepository.findAllByUserIdAndDeletedAtIsNull(USER_ID)).thenReturn(List.of(guardian));
 
         var response = userService.getMe(USER_ID);
 
@@ -65,7 +65,7 @@ class UserServiceTest {
     @Test
     void 자녀가_3명이면_추가는_INVALID_STATE다() {
         when(userRepository.findById(USER_ID)).thenReturn(Optional.of(user));
-        when(guardianRepository.countByUserId(USER_ID)).thenReturn(3L);
+        when(guardianRepository.countByUserIdAndDeletedAtIsNull(USER_ID)).thenReturn(3L);
 
         assertThatThrownBy(() -> userService.addGuardian(USER_ID,
                 new GuardianAddRequest("김딸", "01011112222", "딸")))
@@ -76,7 +76,7 @@ class UserServiceTest {
     @Test
     void 잘못된_관계_값은_INVALID_INPUT이다() {
         when(userRepository.findById(USER_ID)).thenReturn(Optional.of(user));
-        when(guardianRepository.countByUserId(USER_ID)).thenReturn(0L);
+        when(guardianRepository.countByUserIdAndDeletedAtIsNull(USER_ID)).thenReturn(0L);
 
         assertThatThrownBy(() -> userService.addGuardian(USER_ID,
                 new GuardianAddRequest("김딸", "01011112222", "이웃")))
@@ -87,7 +87,7 @@ class UserServiceTest {
     @Test
     void 자녀_추가_성공_시_현재_인원을_반환한다() {
         when(userRepository.findById(USER_ID)).thenReturn(Optional.of(user));
-        when(guardianRepository.countByUserId(USER_ID)).thenReturn(1L, 2L);
+        when(guardianRepository.countByUserIdAndDeletedAtIsNull(USER_ID)).thenReturn(1L, 2L);
         when(guardianRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
         var response = userService.addGuardian(USER_ID, new GuardianAddRequest("김딸", "01011112222", "딸"));
@@ -99,20 +99,20 @@ class UserServiceTest {
     @Test
     void 마지막_자녀_삭제_시_fraudAlertDisabled가_true다() {
         Guardian guardian = guardianOf(user);
-        when(guardianRepository.findById(10L)).thenReturn(Optional.of(guardian));
-        when(guardianRepository.countByUserId(USER_ID)).thenReturn(0L);
+        when(guardianRepository.findByIdAndDeletedAtIsNull(10L)).thenReturn(Optional.of(guardian));
+        when(guardianRepository.countByUserIdAndDeletedAtIsNull(USER_ID)).thenReturn(0L);
 
         var response = userService.deleteGuardian(USER_ID, 10L);
 
         assertThat(response.fraudAlertDisabled()).isTrue();
-        verify(guardianRepository).delete(guardian);
+        verify(guardian).softDelete();
     }
 
     @Test
     void 자녀가_남아있으면_fraudAlertDisabled가_false다() {
         Guardian guardian = guardianOf(user);
-        when(guardianRepository.findById(10L)).thenReturn(Optional.of(guardian));
-        when(guardianRepository.countByUserId(USER_ID)).thenReturn(2L);
+        when(guardianRepository.findByIdAndDeletedAtIsNull(10L)).thenReturn(Optional.of(guardian));
+        when(guardianRepository.countByUserIdAndDeletedAtIsNull(USER_ID)).thenReturn(2L);
 
         var response = userService.deleteGuardian(USER_ID, 10L);
 
@@ -125,7 +125,7 @@ class UserServiceTest {
         User other = mock(User.class);
         when(other.getId()).thenReturn(99L);
         Guardian guardian = guardianOf(other);
-        when(guardianRepository.findById(10L)).thenReturn(Optional.of(guardian));
+        when(guardianRepository.findByIdAndDeletedAtIsNull(10L)).thenReturn(Optional.of(guardian));
 
         assertThatThrownBy(() -> userService.deleteGuardian(USER_ID, 10L))
                 .isInstanceOf(BusinessException.class)
@@ -134,7 +134,7 @@ class UserServiceTest {
 
     @Test
     void 존재하지_않는_자녀_삭제는_NOT_FOUND다() {
-        when(guardianRepository.findById(10L)).thenReturn(Optional.empty());
+        when(guardianRepository.findByIdAndDeletedAtIsNull(10L)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> userService.deleteGuardian(USER_ID, 10L))
                 .isInstanceOf(BusinessException.class)
@@ -163,3 +163,4 @@ class UserServiceTest {
         assertThat(item).hasNoNullFieldsOrPropertiesExcept("confidence");
     }
 }
+

@@ -28,7 +28,7 @@ public class UserService {
     @Transactional(readOnly = true)
     public MeResponse getMe(Long userId) {
         User user = findUser(userId);
-        List<GuardianResponse> guardians = guardianRepository.findAllByUserId(userId).stream()
+        List<GuardianResponse> guardians = guardianRepository.findAllByUserIdAndDeletedAtIsNull(userId).stream()
                 .map(GuardianResponse::from)
                 .toList();
         return new MeResponse(user.getId(), user.getName(), user.getPhoneNumber(), guardians);
@@ -37,7 +37,7 @@ public class UserService {
     @Transactional
     public GuardianAddResponse addGuardian(Long userId, GuardianAddRequest request) {
         User user = findUser(userId);
-        if (guardianRepository.countByUserId(userId) >= MAX_GUARDIANS) {
+        if (guardianRepository.countByUserIdAndDeletedAtIsNull(userId) >= MAX_GUARDIANS) {
             throw new BusinessException(ErrorCode.INVALID_STATE, "자녀는 최대 3명까지 등록할 수 있습니다.");
         }
         Guardian guardian = guardianRepository.save(Guardian.builder()
@@ -46,17 +46,17 @@ public class UserService {
                 .phoneNumber(request.phoneNumber())
                 .relation(GuardianRelation.fromLabel(request.relation()))
                 .build());
-        int count = (int) guardianRepository.countByUserId(userId);
+        int count = (int) guardianRepository.countByUserIdAndDeletedAtIsNull(userId);
         return new GuardianAddResponse(GuardianResponse.from(guardian), count);
     }
 
     @Transactional
     public GuardianDeleteResponse deleteGuardian(Long userId, Long guardianId) {
-        Guardian guardian = guardianRepository.findById(guardianId)
+        Guardian guardian = guardianRepository.findByIdAndDeletedAtIsNull(guardianId)
                 .filter(g -> g.getUser().getId().equals(userId))
                 .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND, "자녀를 찾을 수 없습니다."));
-        guardianRepository.delete(guardian);
-        int count = (int) guardianRepository.countByUserId(userId);
+        guardian.softDelete();
+        int count = (int) guardianRepository.countByUserIdAndDeletedAtIsNull(userId);
         return new GuardianDeleteResponse(count, count == 0);
     }
 
@@ -74,3 +74,4 @@ public class UserService {
                 .orElseThrow(() -> new BusinessException(ErrorCode.UNAUTHORIZED));
     }
 }
+

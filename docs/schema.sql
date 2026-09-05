@@ -34,6 +34,8 @@ CREATE TABLE `guardian` (
 	`phone_number`	VARCHAR(11)	NOT NULL,
 	`relation`	VARCHAR(20)	NOT NULL	COMMENT '아들 | 딸 | 배우자 | 기타',
 	`created_at`	DATETIME	NOT NULL	DEFAULT CURRENT_TIMESTAMP,
+	-- guardian_notification이 guardian.id를 FK 참조하므로 소프트 삭제 (알림 이력 보존)
+	`deleted_at`	DATETIME	NULL	COMMENT '소프트 삭제 시각 (NULL = 활성)',
 	CONSTRAINT `PK_GUARDIAN` PRIMARY KEY (`id`),
 	CONSTRAINT `FK_user_TO_guardian` FOREIGN KEY (`user_id`) REFERENCES `user` (`id`)
 ) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci;
