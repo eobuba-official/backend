@@ -52,4 +52,10 @@ class JwtAuthFilterTest {
         MockHttpServletRequest request = new MockHttpServletRequest("POST", "/api/v1/auth/sms/request");
         assertThat(filter.shouldNotFilter(request)).isTrue();
     }
+
+    @Test
+    void Swagger_경로는_필터를_거치지_않는다() {
+        assertThat(filter.shouldNotFilter(new MockHttpServletRequest("GET", "/v3/api-docs"))).isTrue();
+        assertThat(filter.shouldNotFilter(new MockHttpServletRequest("GET", "/swagger-ui/index.html"))).isTrue();
+    }
 }

@@ -65,8 +65,9 @@ piggyback.recommendation.search-radius-km=10
 piggyback.recommendation.default-wait-minutes=15
 piggyback.recommendation.planning-business-days=2
 
-# Classification tuning - demo defaults; validate against the test utterance set.
-piggyback.classification.confirmation-threshold=0.8
+# Classification tuning
+piggyback.classification.confidence-threshold=0.75
+piggyback.classification.candidate-floor=0.35
 piggyback.classification.candidate-limit=3
 
 # Local diagnostics
