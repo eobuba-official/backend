@@ -4,6 +4,8 @@ import jakarta.persistence.EntityManager;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
 
 @Repository
 @RequiredArgsConstructor
@@ -11,16 +13,18 @@ public class ConsultationReferenceRepository {
 
     private final EntityManager entityManager;
 
-    public boolean existsByIdAndUserId(UUID consultationId, Long userId) {
-        Number count = (Number) entityManager.createNativeQuery("""
-                        select count(*)
+    @Transactional(propagation = Propagation.MANDATORY)
+    public boolean lockByIdAndUserId(UUID consultationId, Long userId) {
+        return !entityManager.createNativeQuery("""
+                        select id
                         from consultation
                         where id = :consultationId
                           and user_id = :userId
+                        for update
                         """)
                 .setParameter("consultationId", consultationId.toString())
                 .setParameter("userId", userId)
-                .getSingleResult();
-        return count.longValue() > 0;
+                .getResultList()
+                .isEmpty();
     }
 }

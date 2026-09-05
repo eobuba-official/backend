@@ -32,7 +32,9 @@ import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InOrder;
 import org.mockito.Mock;
+import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
@@ -95,8 +97,10 @@ class BranchRecommendationServiceTest {
         assertThat(response.recommendations().get(0).rank()).isEqualTo(1);
         assertThat(response.weights().waiting()).isEqualTo(0.6);
         assertThat(response.weights().distance()).isEqualTo(0.4);
-        verify(recommendationRepository).deleteByConsultationId(CONSULTATION_ID.toString());
-        verify(recommendationRepository).saveAll(anyList());
+        InOrder updateOrder = Mockito.inOrder(consultationReferenceRepository, recommendationRepository);
+        updateOrder.verify(consultationReferenceRepository).lockByIdAndUserId(CONSULTATION_ID, USER_ID);
+        updateOrder.verify(recommendationRepository).deleteByConsultationId(CONSULTATION_ID.toString());
+        updateOrder.verify(recommendationRepository).saveAll(anyList());
     }
 
     @Test
@@ -184,7 +188,7 @@ class BranchRecommendationServiceTest {
     @Test
     void throwsWhenConsultationDoesNotBelongToUser() {
         when(taskTypeRepository.existsById(PASSBOOK_REISSUE)).thenReturn(true);
-        when(consultationReferenceRepository.existsByIdAndUserId(CONSULTATION_ID, USER_ID)).thenReturn(false);
+        when(consultationReferenceRepository.lockByIdAndUserId(CONSULTATION_ID, USER_ID)).thenReturn(false);
 
         assertThatThrownBy(() -> recommendWithGps(null))
                 .isInstanceOf(ConsultationNotFoundException.class);
@@ -204,7 +208,7 @@ class BranchRecommendationServiceTest {
 
     private void givenValidReferences() {
         when(taskTypeRepository.existsById(PASSBOOK_REISSUE)).thenReturn(true);
-        when(consultationReferenceRepository.existsByIdAndUserId(CONSULTATION_ID, USER_ID)).thenReturn(true);
+        when(consultationReferenceRepository.lockByIdAndUserId(CONSULTATION_ID, USER_ID)).thenReturn(true);
     }
 
     private Branch branch(Long id, String name, double lat, double lng, String regionCode) {

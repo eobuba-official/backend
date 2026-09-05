@@ -121,7 +121,7 @@ public class BranchRecommendationService {
         if (!taskTypeRepository.existsById(taskTypeCode)) {
             throw new TaskTypeNotFoundException();
         }
-        if (!consultationReferenceRepository.existsByIdAndUserId(consultationId, userId)) {
+        if (!consultationReferenceRepository.lockByIdAndUserId(consultationId, userId)) {
             throw new ConsultationNotFoundException();
         }
     }
