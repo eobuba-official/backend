@@ -56,12 +56,14 @@ piggyback.integrations.seoul-city-data.api-key=CHANGE_ME
 piggyback.integrations.juso.base-url=https://business.juso.go.kr/addrlink/addrCoordApi.do
 piggyback.integrations.juso.confirmation-key=CHANGE_ME
 
-# Recommendation tuning - demo defaults; confirm with the recommendation owner.
+# Recommendation tuning - confirmed defaults.
 piggyback.recommendation.distance-weight=0.4
 piggyback.recommendation.waiting-weight=0.6
 piggyback.recommendation.result-limit=3
 piggyback.recommendation.congestion-ttl=10m
 piggyback.recommendation.search-radius-km=10
+piggyback.recommendation.default-wait-minutes=15
+piggyback.recommendation.planning-business-days=2
 
 # Classification tuning - demo defaults; validate against the test utterance set.
 piggyback.classification.confirmation-threshold=0.8
