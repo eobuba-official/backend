@@ -19,8 +19,10 @@ import java.util.Optional;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -29,6 +31,7 @@ class JpaClassificationResultStoreTest {
     private ConsultationJpaRepository consultationRepository;
     private ConsultationCandidateJpaRepository candidateRepository;
     private ConsultationResultJpaRepository resultRepository;
+    private FraudDetectionJpaRepository fraudDetectionRepository;
     private JpaClassificationResultStore store;
 
     @BeforeEach
@@ -36,10 +39,12 @@ class JpaClassificationResultStoreTest {
         consultationRepository = mock(ConsultationJpaRepository.class);
         candidateRepository = mock(ConsultationCandidateJpaRepository.class);
         resultRepository = mock(ConsultationResultJpaRepository.class);
+        fraudDetectionRepository = mock(FraudDetectionJpaRepository.class);
         store = new JpaClassificationResultStore(
                 consultationRepository,
                 candidateRepository,
                 resultRepository,
+                fraudDetectionRepository,
                 Clock.fixed(Instant.parse("2026-09-03T01:00:00Z"), ZoneOffset.UTC)
         );
     }
@@ -79,6 +84,29 @@ class JpaClassificationResultStoreTest {
                 candidateCaptor.getAllValues().stream()
                         .map(ConsultationCandidateEntity::displayOrder)
                         .toList()
+        );
+    }
+
+    @Test
+    void rejectsSuspendedPersistenceWithoutValidatedFraudPatterns() {
+        var command = new ClassificationCommand("잔액 알려줘", InputMethod.TEXT, null);
+        var result = ClassificationResult.confirmed(
+                "잔액 알려줘",
+                0.9,
+                TaskTypeCode.BALANCE_INQUIRY,
+                false
+        );
+
+        assertThrows(
+                IllegalArgumentException.class,
+                () -> store.saveSuspended(7L, command, result, List.of())
+        );
+
+        verifyNoInteractions(
+                consultationRepository,
+                candidateRepository,
+                resultRepository,
+                fraudDetectionRepository
         );
     }
 

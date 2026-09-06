@@ -131,7 +131,8 @@ class TaskSelectionControllerTest {
         public UUID saveSuspended(
                 long userId,
                 com.piggyback.backend.classification.application.ClassificationCommand command,
-                ClassificationResult pendingResult
+                ClassificationResult pendingResult,
+                java.util.List<com.piggyback.backend.classification.domain.ValidatedFraudPattern> fraudPatterns
         ) {
             throw new UnsupportedOperationException();
         }

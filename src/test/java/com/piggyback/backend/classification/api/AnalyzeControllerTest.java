@@ -5,7 +5,8 @@ import com.piggyback.backend.classification.application.ClassificationCommand;
 import com.piggyback.backend.classification.application.TaskClassificationWorkflow;
 import com.piggyback.backend.classification.domain.ClassificationResult;
 import com.piggyback.backend.classification.domain.TaskTypeView;
-import com.piggyback.backend.classification.port.LlmFraudPattern;
+import com.piggyback.backend.classification.domain.FraudPatternType;
+import com.piggyback.backend.classification.domain.ValidatedFraudPattern;
 import com.piggyback.backend.classification.port.VisitDecisionView;
 import com.piggyback.backend.classification.infrastructure.llm.LlmClassificationException;
 import com.piggyback.backend.common.exception.GlobalExceptionHandler;
@@ -150,8 +151,8 @@ class AnalyzeControllerTest {
         var suspended = AnalyzeResult.suspended(
                 consultationId,
                 pending,
-                List.of(new LlmFraudPattern(
-                        "SAFE_ACCOUNT",
+                List.of(new ValidatedFraudPattern(
+                        FraudPatternType.SAFE_ACCOUNT,
                         "안전계좌",
                         "은행은 안전계좌 송금을 요구하지 않습니다."
                 ))
@@ -168,6 +169,7 @@ class AnalyzeControllerTest {
                 .andExpect(jsonPath("$.data.classification.confidence").isEmpty())
                 .andExpect(jsonPath("$.data.classification.task").isEmpty())
                 .andExpect(jsonPath("$.data.classification.candidates.length()").value(0))
+                .andExpect(jsonPath("$.data.visitDecision").isEmpty())
                 .andExpect(jsonPath("$.data.fraudCheck.patterns[0].label").value("안전계좌 요구"))
                 .andExpect(jsonPath("$.data.fraudCheck.safetyActions.length()").value(4));
     }
