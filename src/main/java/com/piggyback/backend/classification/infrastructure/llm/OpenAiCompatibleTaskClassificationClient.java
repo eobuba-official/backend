@@ -16,6 +16,7 @@ import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientException;
+import org.springframework.web.client.RestClientResponseException;
 import tools.jackson.core.JacksonException;
 import tools.jackson.databind.ObjectMapper;
 
@@ -23,6 +24,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 
@@ -103,10 +105,26 @@ public class OpenAiCompatibleTaskClassificationClient implements TaskClassificat
             String content = extractContent(response);
             LlmPayload payload = objectMapper.readValue(content, LlmPayload.class);
             validatePayload(payload);
-            return payload.toOutput(model);
+            String responseModel = resolveResponseModel(response, model);
+            log.info(
+                    "LLM classification response received: requestedModel={}, responseModel={}, promptVersion={}",
+                    model,
+                    responseModel,
+                    PROMPT_VERSION
+            );
+            return payload.toOutput(responseModel);
         } catch (JacksonException exception) {
             throw new LlmClassificationException("LLM returned malformed structured output", exception);
+        } catch (RestClientResponseException exception) {
+            logHttpFailure(model, exception);
+            throw new LlmClassificationException("LLM request failed", exception);
         } catch (RestClientException exception) {
+            log.warn(
+                    "LLM transport request failed: requestedModel={}, promptVersion={}, cause={}",
+                    model,
+                    PROMPT_VERSION,
+                    exception.getClass().getSimpleName()
+            );
             throw new LlmClassificationException("LLM request failed", exception);
         }
     }
@@ -114,7 +132,7 @@ public class OpenAiCompatibleTaskClassificationClient implements TaskClassificat
     private Map<String, Object> buildRequest(String model, String utterance) {
         Map<String, Object> request = new LinkedHashMap<>();
         request.put("model", model);
-        request.put("temperature", 0);
+        applyModelOptions(request, model);
         request.put("messages", List.of(
                 Map.of("role", "system", "content", systemPrompt()),
                 Map.of("role", "user", "content", utterance)
@@ -128,6 +146,21 @@ public class OpenAiCompatibleTaskClassificationClient implements TaskClassificat
                 )
         ));
         return request;
+    }
+
+    private void applyModelOptions(Map<String, Object> request, String model) {
+        if (!usesDefaultTemperatureOnly(model)) {
+            request.put("temperature", 0);
+        }
+    }
+
+    private boolean usesDefaultTemperatureOnly(String model) {
+        if (model == null) {
+            return false;
+        }
+        String normalizedModel = model.trim().toLowerCase(Locale.ROOT);
+        return normalizedModel.equals("gpt-5-nano")
+                || normalizedModel.startsWith("gpt-5-nano-");
     }
 
     private String systemPrompt() {
@@ -224,6 +257,38 @@ public class OpenAiCompatibleTaskClassificationClient implements TaskClassificat
         }
     }
 
+    private String resolveResponseModel(ChatCompletionResponse response, String requestedModel) {
+        if (response.model() == null || response.model().isBlank()) {
+            return requestedModel;
+        }
+        return response.model();
+    }
+
+    private void logHttpFailure(String requestedModel, RestClientResponseException exception) {
+        LlmHttpError error = parseHttpError(exception.getResponseBodyAsString());
+        log.warn(
+                "LLM HTTP request failed: requestedModel={}, promptVersion={}, status={}, errorType={}, errorCode={}, errorParam={}",
+                requestedModel,
+                PROMPT_VERSION,
+                exception.getStatusCode().value(),
+                error.type(),
+                error.code(),
+                error.param()
+        );
+    }
+
+    private LlmHttpError parseHttpError(String responseBody) {
+        try {
+            LlmHttpErrorResponse response = objectMapper.readValue(responseBody, LlmHttpErrorResponse.class);
+            if (response != null && response.error() != null) {
+                return response.error().sanitized();
+            }
+        } catch (JacksonException ignored) {
+            // Never log the raw provider response because it may contain sensitive request data.
+        }
+        return LlmHttpError.unknown();
+    }
+
     private String extractContent(ChatCompletionResponse response) {
         if (response == null
                 || response.choices() == null
@@ -237,7 +302,7 @@ public class OpenAiCompatibleTaskClassificationClient implements TaskClassificat
     }
 
     @JsonIgnoreProperties(ignoreUnknown = true)
-    record ChatCompletionResponse(List<Choice> choices) {
+    record ChatCompletionResponse(String model, List<Choice> choices) {
     }
 
     @JsonIgnoreProperties(ignoreUnknown = true)
@@ -246,6 +311,31 @@ public class OpenAiCompatibleTaskClassificationClient implements TaskClassificat
 
     @JsonIgnoreProperties(ignoreUnknown = true)
     record Message(String content) {
+    }
+
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    record LlmHttpErrorResponse(LlmHttpError error) {
+    }
+
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    record LlmHttpError(String type, String code, String param) {
+        private static final String UNKNOWN = "unknown";
+
+        private LlmHttpError sanitized() {
+            return new LlmHttpError(safe(type), safe(code), safe(param));
+        }
+
+        private static LlmHttpError unknown() {
+            return new LlmHttpError(UNKNOWN, UNKNOWN, UNKNOWN);
+        }
+
+        private static String safe(String value) {
+            if (value == null || value.isBlank()) {
+                return UNKNOWN;
+            }
+            String sanitized = value.replaceAll("[^A-Za-z0-9._-]", "_");
+            return sanitized.length() <= 80 ? sanitized : sanitized.substring(0, 80);
+        }
     }
 
     @JsonIgnoreProperties(ignoreUnknown = true)
