@@ -42,7 +42,7 @@ piggyback.integrations.clova-csr.api-key=CHANGE_ME
 piggyback.integrations.clova-csr.language=Kor
 piggyback.integrations.clova-csr.connect-timeout=3s
 piggyback.integrations.clova-csr.read-timeout=65s
-piggyback.integrations.clova-csr.max-audio-size=10MB
+piggyback.integrations.clova-csr.max-audio-size=3MB
 
 # Financial Map - branch/ATM master data
 piggyback.integrations.finmap.base-url=https://openapi.kftc.or.kr
