@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.validation.annotation.Validated;
+import org.springframework.web.multipart.MaxUploadSizeExceededException;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -61,6 +62,13 @@ class GlobalExceptionHandlerTest {
         mockMvc.perform(get("/test/llm-error"))
                 .andExpect(status().isBadGateway())
                 .andExpect(jsonPath("$.error.code").value("LLM_ERROR"));
+    }
+
+    @Test
+    void 최대_업로드_크기_초과는_AUDIO_TOO_LARGE_413으로_매핑된다() throws Exception {
+        mockMvc.perform(get("/test/audio-too-large"))
+                .andExpect(status().isContentTooLarge())
+                .andExpect(jsonPath("$.error.code").value("AUDIO_TOO_LARGE"));
     }
 
     @Test
@@ -116,6 +124,11 @@ class GlobalExceptionHandlerTest {
         @GetMapping("/test/llm-error")
         ApiResponse<Void> llmError() {
             throw new BusinessException(ErrorCode.LLM_ERROR);
+        }
+
+        @GetMapping("/test/audio-too-large")
+        ApiResponse<Void> audioTooLarge() {
+            throw new MaxUploadSizeExceededException(3 * 1024 * 1024L);
         }
 
         @PostMapping("/test/validate")
