@@ -24,10 +24,21 @@ class SwaggerUiSmokeTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.info.title").value("어부바 백엔드 API"))
                 .andExpect(jsonPath("$.info.version").value("v1.2"))
+                .andExpect(jsonPath("$.components.securitySchemes.bearerAuth.type").value("http"))
+                .andExpect(jsonPath("$.components.securitySchemes.bearerAuth.scheme").value("bearer"))
+                .andExpect(jsonPath("$.components.securitySchemes.bearerAuth.bearerFormat").value("JWT"))
                 .andExpect(jsonPath("$.paths['/api/v1/analyze']").exists())
+                .andExpect(jsonPath("$.paths['/api/v1/analyze'].post.summary").value("자연어 업무 분석"))
+                .andExpect(jsonPath("$.paths['/api/v1/analyze'].post.parameters").doesNotExist())
+                .andExpect(jsonPath("$.paths['/api/v1/analyze'].post.security[0].bearerAuth").exists())
                 .andExpect(jsonPath("$.paths['/api/v1/speech/transcriptions']").exists())
+                .andExpect(jsonPath("$.paths['/api/v1/speech/transcriptions'].post.summary")
+                        .value("음성 파일 인식"))
                 .andExpect(jsonPath("$.paths['/api/v1/consultations/{consultationId}/task-selection']")
-                        .exists());
+                        .exists())
+                .andExpect(jsonPath("$.paths['/api/v1/consultations/{consultationId}/task-selection']"
+                                + ".post.summary")
+                        .value("업무 후보 선택"));
     }
 
     @Test
