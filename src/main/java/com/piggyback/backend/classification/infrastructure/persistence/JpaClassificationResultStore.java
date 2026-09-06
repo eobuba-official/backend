@@ -4,6 +4,7 @@ import com.piggyback.backend.classification.application.ClassificationCommand;
 import com.piggyback.backend.classification.domain.ClassificationResult;
 import com.piggyback.backend.classification.domain.ClassificationStatus;
 import com.piggyback.backend.classification.domain.ConsultationStatus;
+import com.piggyback.backend.classification.domain.ValidatedFraudPattern;
 import com.piggyback.backend.domain.TaskTypeCode;
 import com.piggyback.backend.classification.port.ClassificationResultStore;
 import jakarta.transaction.Transactional;
@@ -12,6 +13,7 @@ import org.springframework.stereotype.Repository;
 
 import java.time.Clock;
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.UUID;
 
 @Repository
@@ -20,26 +22,36 @@ public class JpaClassificationResultStore implements ClassificationResultStore {
     private final ConsultationJpaRepository consultationRepository;
     private final ConsultationCandidateJpaRepository candidateRepository;
     private final ConsultationResultJpaRepository resultRepository;
+    private final FraudDetectionJpaRepository fraudDetectionRepository;
     private final Clock clock;
 
     @Autowired
     public JpaClassificationResultStore(
             ConsultationJpaRepository consultationRepository,
             ConsultationCandidateJpaRepository candidateRepository,
-            ConsultationResultJpaRepository resultRepository
+            ConsultationResultJpaRepository resultRepository,
+            FraudDetectionJpaRepository fraudDetectionRepository
     ) {
-        this(consultationRepository, candidateRepository, resultRepository, Clock.systemDefaultZone());
+        this(
+                consultationRepository,
+                candidateRepository,
+                resultRepository,
+                fraudDetectionRepository,
+                Clock.systemDefaultZone()
+        );
     }
 
     JpaClassificationResultStore(
             ConsultationJpaRepository consultationRepository,
             ConsultationCandidateJpaRepository candidateRepository,
             ConsultationResultJpaRepository resultRepository,
+            FraudDetectionJpaRepository fraudDetectionRepository,
             Clock clock
     ) {
         this.consultationRepository = consultationRepository;
         this.candidateRepository = candidateRepository;
         this.resultRepository = resultRepository;
+        this.fraudDetectionRepository = fraudDetectionRepository;
         this.clock = clock;
     }
 
@@ -54,15 +66,28 @@ public class JpaClassificationResultStore implements ClassificationResultStore {
     public UUID saveSuspended(
             long userId,
             ClassificationCommand command,
-            ClassificationResult pendingResult
+            ClassificationResult pendingResult,
+            List<ValidatedFraudPattern> fraudPatterns
     ) {
-        return saveConsultation(
+        if (fraudPatterns == null || fraudPatterns.isEmpty()) {
+            throw new IllegalArgumentException("Fraud warning requires at least one validated pattern");
+        }
+        UUID consultationId = saveConsultation(
                 userId,
                 command,
                 pendingResult,
                 ConsultationStatus.FRAUD_WARNING,
                 true
         );
+        for (ValidatedFraudPattern pattern : fraudPatterns) {
+            fraudDetectionRepository.save(new FraudDetectionEntity(
+                    consultationId.toString(),
+                    pattern.type(),
+                    pattern.evidence(),
+                    pattern.explanation()
+            ));
+        }
+        return consultationId;
     }
 
     private UUID saveConsultation(

@@ -31,7 +31,7 @@ import java.util.Objects;
 @Component
 public class OpenAiCompatibleTaskClassificationClient implements TaskClassificationClient {
 
-    static final String PROMPT_VERSION = "task-classification-v1.2";
+    static final String PROMPT_VERSION = "task-classification-v1.3-fraud-guardrail";
 
     private static final Logger log = LoggerFactory.getLogger(OpenAiCompatibleTaskClassificationClient.class);
 
@@ -171,7 +171,16 @@ public class OpenAiCompatibleTaskClassificationClient implements TaskClassificat
                 Correct obvious speech-recognition mistakes without adding facts.
                 intent and candidates must use only these task codes: %s.
                 candidates must be ordered by likelihood and contain no duplicates.
-                Fraud evidence must be an exact phrase found in the user's utterance.
+                Detect only these voice-phishing patterns:
+                - IMPERSONATION: someone claims to be a prosecutor, police officer, financial regulator, bank, or other trusted institution. Example: "검찰 수사관입니다".
+                - SAFE_ACCOUNT: someone asks the user to move money to a so-called safe or protected account. Example: "안전계좌로 보내세요".
+                - SECRECY: someone orders the user not to tell family, bank staff, or anyone else. Example: "가족에게 말하면 안 됩니다".
+                - REMOTE_CONTROL: someone asks to install a remote-control app, share the screen, or grant device access. Example: "원격 앱을 설치하세요".
+                - URGENCY: someone pressures the user to act immediately by threatening loss, arrest, account suspension, or another penalty. Example: "지금 당장 보내지 않으면 계좌가 정지됩니다".
+                fraud_detected must be true if and only if fraud_patterns contains at least one item.
+                Each fraud evidence value must copy a non-empty exact phrase from the original user's utterance.
+                Do not infer a pattern when the utterance itself does not contain supporting words.
+                Do not return duplicate pairs of fraud pattern type and evidence.
                 If no allowed task is plausible, use an empty intent and empty candidates.
                 Calibrate confidence conservatively. Use high confidence only when one task is explicit.
                 Examples:

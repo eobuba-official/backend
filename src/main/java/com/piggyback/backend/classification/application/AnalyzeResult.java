@@ -1,9 +1,8 @@
 package com.piggyback.backend.classification.application;
 
 import com.piggyback.backend.classification.domain.ClassificationResult;
-import com.piggyback.backend.classification.domain.FraudPatternType;
 import com.piggyback.backend.classification.domain.TaskTypeView;
-import com.piggyback.backend.classification.port.LlmFraudPattern;
+import com.piggyback.backend.classification.domain.ValidatedFraudPattern;
 import com.piggyback.backend.classification.port.VisitDecisionView;
 
 import java.util.List;
@@ -17,6 +16,13 @@ public record AnalyzeResult(
         VisitDecisionView visitDecision,
         String guidance
 ) {
+    private static final List<SafetyAction> FRAUD_SAFETY_ACTIONS = List.of(
+            new SafetyAction(1, "지금 통화 중이라면 전화를 끊으세요"),
+            new SafetyAction(2, "은행 대표번호(1588-9999)로 직접 전화해 확인하세요"),
+            new SafetyAction(3, "금융감독원 1332에 상담하세요"),
+            new SafetyAction(4, "가족에게 지금 상황을 알리세요")
+    );
+
     public static AnalyzeResult normal(
             UUID consultationId,
             ClassificationResult result,
@@ -41,8 +47,11 @@ public record AnalyzeResult(
     public static AnalyzeResult suspended(
             UUID consultationId,
             ClassificationResult pendingResult,
-            List<LlmFraudPattern> patterns
+            List<ValidatedFraudPattern> patterns
     ) {
+        if (patterns == null || patterns.isEmpty()) {
+            throw new IllegalArgumentException("Fraud warning requires at least one validated pattern");
+        }
         return new AnalyzeResult(
                 consultationId,
                 "FRAUD_WARNING",
@@ -64,17 +73,12 @@ public record AnalyzeResult(
             return new FraudCheck(false, false, List.of(), List.of(), null);
         }
 
-        private static FraudCheck detected(List<LlmFraudPattern> patterns) {
+        private static FraudCheck detected(List<ValidatedFraudPattern> patterns) {
             return new FraudCheck(
                     true,
                     true,
                     patterns.stream().map(FraudPattern::from).toList(),
-                    List.of(
-                            new SafetyAction(1, "지금 통화 중이라면 전화를 끊으세요"),
-                            new SafetyAction(2, "은행 대표번호(1588-9999)로 직접 전화해 확인하세요"),
-                            new SafetyAction(3, "금융감독원 1332에 상담하세요"),
-                            new SafetyAction(4, "가족에게 지금 상황을 알리세요")
-                    ),
+                    FRAUD_SAFETY_ACTIONS,
                     null
             );
         }
@@ -86,24 +90,13 @@ public record AnalyzeResult(
             String evidence,
             String explanation
     ) {
-        private static FraudPattern from(LlmFraudPattern pattern) {
-            FraudPatternType type = FraudPatternType.fromExternalValue(pattern.type()).orElseThrow();
+        private static FraudPattern from(ValidatedFraudPattern pattern) {
             return new FraudPattern(
-                    type.name(),
-                    labelOf(type),
+                    pattern.type().name(),
+                    pattern.type().label(),
                     pattern.evidence(),
                     pattern.explanation()
             );
-        }
-
-        private static String labelOf(FraudPatternType type) {
-            return switch (type) {
-                case IMPERSONATION -> "기관 사칭";
-                case SAFE_ACCOUNT -> "안전계좌 요구";
-                case SECRECY -> "비밀 유지 요구";
-                case REMOTE_CONTROL -> "원격 제어 요구";
-                case URGENCY -> "긴급 압박";
-            };
         }
     }
 

@@ -16,6 +16,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.hamcrest.Matchers.containsString;
 import static org.springframework.test.web.client.ExpectedCount.once;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.header;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.jsonPath;
@@ -91,6 +92,23 @@ class OpenAiCompatibleTaskClassificationClientTest {
         var output = createClient().analyze("통장을 잃어버렸어");
 
         assertEquals("gpt-4o-mini", output.model());
+        server.verify();
+    }
+
+    @Test
+    void sendsDefinitionsAndExamplesForAllAllowedFraudPatterns() {
+        server.expect(once(), requestTo("https://llm.example/v1/chat/completions"))
+                .andExpect(jsonPath("$.messages[0].content").value(containsString("IMPERSONATION")))
+                .andExpect(jsonPath("$.messages[0].content").value(containsString("SAFE_ACCOUNT")))
+                .andExpect(jsonPath("$.messages[0].content").value(containsString("SECRECY")))
+                .andExpect(jsonPath("$.messages[0].content").value(containsString("REMOTE_CONTROL")))
+                .andExpect(jsonPath("$.messages[0].content").value(containsString("URGENCY")))
+                .andExpect(jsonPath("$.messages[0].content").value(containsString("안전계좌로 보내세요")))
+                .andExpect(jsonPath("$.messages[0].content").value(containsString("원격 앱을 설치하세요")))
+                .andRespond(withSuccess(successResponse(), MediaType.APPLICATION_JSON));
+
+        createClient().analyze("통장을 잃어버렸어");
+
         server.verify();
     }
 
