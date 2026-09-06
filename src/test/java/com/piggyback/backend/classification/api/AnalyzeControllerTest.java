@@ -11,6 +11,7 @@ import com.piggyback.backend.classification.port.VisitDecisionView;
 import com.piggyback.backend.classification.infrastructure.llm.LlmClassificationException;
 import com.piggyback.backend.common.exception.GlobalExceptionHandler;
 import com.piggyback.backend.domain.TaskTypeCode;
+import com.piggyback.backend.domain.VisitDecision;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.MediaType;
@@ -51,7 +52,7 @@ class AnalyzeControllerTest {
                 true
         );
         var visitDecision = new VisitDecisionView(
-                "VISIT_REQUIRED",
+                VisitDecision.VISIT_REQUIRED,
                 "본인 확인이 필요합니다.",
                 List.of(),
                 List.of()

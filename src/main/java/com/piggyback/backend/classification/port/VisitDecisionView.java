@@ -1,10 +1,10 @@
 package com.piggyback.backend.classification.port;
 
 import com.piggyback.backend.visit.dto.VisitDecisionResponse;
+import com.piggyback.backend.domain.VisitDecision;
 import io.swagger.v3.oas.annotations.media.Schema;
 
 import java.util.List;
-import java.util.Set;
 
 public record VisitDecisionView(
         @Schema(
@@ -12,7 +12,7 @@ public record VisitDecisionView(
                 allowableValues = {"NO_VISIT", "CHECK_NEEDED", "VISIT_REQUIRED"},
                 example = "VISIT_REQUIRED"
         )
-        String decision,
+        VisitDecision decision,
         @Schema(description = "방문 판단 이유")
         String reason,
         @Schema(description = "비대면 처리 방법")
@@ -20,16 +20,7 @@ public record VisitDecisionView(
         @Schema(description = "확인이 필요한 공식 채널")
         List<OfficialChannel> officialChannels
 ) {
-    private static final Set<String> ALLOWED_DECISIONS = Set.of(
-            "NO_VISIT",
-            "CHECK_NEEDED",
-            "VISIT_REQUIRED"
-    );
-
     public VisitDecisionView {
-        if (!ALLOWED_DECISIONS.contains(decision)) {
-            throw new IllegalArgumentException("Unsupported visit decision: " + decision);
-        }
         if (reason == null || reason.isBlank()) {
             throw new IllegalArgumentException("Visit decision reason is required");
         }
@@ -39,7 +30,7 @@ public record VisitDecisionView(
 
     public static VisitDecisionView from(VisitDecisionResponse response) {
         return new VisitDecisionView(
-                response.decision().name(),
+                response.decision(),
                 response.reason(),
                 response.remoteMethods().stream()
                         .map(item -> new RemoteMethod(

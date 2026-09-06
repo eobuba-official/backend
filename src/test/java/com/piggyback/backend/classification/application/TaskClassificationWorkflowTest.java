@@ -35,7 +35,7 @@ class TaskClassificationWorkflowTest {
 
         assertEquals(consultationId, outcome.consultationId());
         assertEquals("TASK_CONFIRMED", outcome.status());
-        assertEquals("VISIT_REQUIRED", outcome.visitDecision().decision());
+        assertEquals(VisitDecision.VISIT_REQUIRED, outcome.visitDecision().decision());
         assertEquals(7L, store.userId);
         assertEquals(TaskTypeCode.PASSBOOK_REISSUE, store.result.task().taskTypeCode());
     }
@@ -144,10 +144,6 @@ class TaskClassificationWorkflowTest {
                         0.9,
                         List.of()
                 );
-        var classificationService = new TaskClassificationService(
-                client,
-                new ClassificationPolicy(new ClassificationProperties())
-        );
         VisitDecisionService visitDecisionService = mock(VisitDecisionService.class);
         when(visitDecisionService.decide(TaskTypeCode.PASSBOOK_REISSUE)).thenReturn(
                 new VisitDecisionResponse(
@@ -161,7 +157,8 @@ class TaskClassificationWorkflowTest {
         );
         return new WorkflowFixture(
                 new TaskClassificationWorkflow(
-                        classificationService,
+                        client,
+                        new ClassificationPolicy(new ClassificationProperties()),
                         new FraudDetectionPolicy(),
                         store,
                         visitDecisionService

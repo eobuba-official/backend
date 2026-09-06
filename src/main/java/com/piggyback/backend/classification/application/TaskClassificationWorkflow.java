@@ -1,26 +1,34 @@
 package com.piggyback.backend.classification.application;
 
 import com.piggyback.backend.classification.port.ClassificationResultStore;
+import com.piggyback.backend.classification.port.TaskClassificationClient;
 import com.piggyback.backend.classification.port.VisitDecisionView;
 import com.piggyback.backend.visit.service.VisitDecisionService;
 import jakarta.transaction.Transactional;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 @Service
 public class TaskClassificationWorkflow {
 
-    private final TaskClassificationService classificationService;
+    private static final Logger log = LoggerFactory.getLogger(TaskClassificationWorkflow.class);
+
+    private final TaskClassificationClient classificationClient;
+    private final ClassificationPolicy classificationPolicy;
     private final FraudDetectionPolicy fraudDetectionPolicy;
     private final ClassificationResultStore resultStore;
     private final VisitDecisionService visitDecisionService;
 
     public TaskClassificationWorkflow(
-            TaskClassificationService classificationService,
+            TaskClassificationClient classificationClient,
+            ClassificationPolicy classificationPolicy,
             FraudDetectionPolicy fraudDetectionPolicy,
             ClassificationResultStore resultStore,
             VisitDecisionService visitDecisionService
     ) {
-        this.classificationService = classificationService;
+        this.classificationClient = classificationClient;
+        this.classificationPolicy = classificationPolicy;
         this.fraudDetectionPolicy = fraudDetectionPolicy;
         this.resultStore = resultStore;
         this.visitDecisionService = visitDecisionService;
@@ -32,27 +40,36 @@ public class TaskClassificationWorkflow {
             throw new IllegalArgumentException("userId must be positive");
         }
 
-        var outcome = classificationService.classify(command);
-        var fraudAssessment = fraudDetectionPolicy.evaluate(command.utterance(), outcome.llmAnalysis());
-        if (fraudAssessment.detected()) {
+        var llmAnalysis = classificationClient.analyze(command.utterance());
+        var classification = classificationPolicy.normalize(command, llmAnalysis.classificationSignal());
+        log.info(
+                "Task classification completed: model={}, promptVersion={}, status={}, confidence={}",
+                llmAnalysis.model(),
+                llmAnalysis.promptVersion(),
+                classification.status(),
+                classification.confidence()
+        );
+
+        var fraudPatterns = fraudDetectionPolicy.evaluate(command.utterance(), llmAnalysis);
+        if (!fraudPatterns.isEmpty()) {
             var consultationId = resultStore.saveSuspended(
                     userId,
                     command,
-                    outcome.classification(),
-                    fraudAssessment.patterns()
+                    classification,
+                    fraudPatterns
             );
             return AnalyzeResult.suspended(
                     consultationId,
-                    outcome.classification(),
-                    fraudAssessment.patterns()
+                    classification,
+                    fraudPatterns
             );
         }
-        var consultationId = resultStore.save(userId, command, outcome.classification());
-        VisitDecisionView visitDecision = outcome.classification().task() == null
+        var consultationId = resultStore.save(userId, command, classification);
+        VisitDecisionView visitDecision = classification.task() == null
                 ? null
                 : VisitDecisionView.from(visitDecisionService.decide(
-                        outcome.classification().task().taskTypeCode()
+                        classification.task().taskTypeCode()
                 ));
-        return AnalyzeResult.normal(consultationId, outcome.classification(), visitDecision);
+        return AnalyzeResult.normal(consultationId, classification, visitDecision);
     }
 }

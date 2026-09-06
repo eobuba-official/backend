@@ -8,7 +8,6 @@ import com.piggyback.backend.domain.TaskTypeCode;
 import com.piggyback.backend.classification.domain.TaskTypeView;
 import org.springframework.stereotype.Component;
 
-import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
 
@@ -70,14 +69,10 @@ public class ClassificationPolicy {
                 .flatMap(java.util.Optional::stream)
                 .forEach(uniqueCodes::add);
 
-        List<TaskTypeView> result = new ArrayList<>();
-        for (TaskTypeCode code : uniqueCodes) {
-            if (result.size() == properties.getCandidateLimit()) {
-                break;
-            }
-            result.add(TaskTypeView.from(code));
-        }
-        return List.copyOf(result);
+        return uniqueCodes.stream()
+                .limit(properties.getCandidateLimit())
+                .map(TaskTypeView::from)
+                .toList();
     }
 
     private double normalizeConfidence(Double confidence) {

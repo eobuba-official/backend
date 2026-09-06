@@ -17,15 +17,4 @@ public record SelectedTaskOutcome(
         @Schema(description = "확정 업무의 DB 규칙 기반 방문 판단")
         VisitDecisionView visitDecision
 ) {
-    public static SelectedTaskOutcome confirmed(
-            TaskSelectionResult selection,
-            VisitDecisionView visitDecision
-    ) {
-        return new SelectedTaskOutcome(
-                selection.consultationId(),
-                "TASK_CONFIRMED",
-                selection.task(),
-                visitDecision
-        );
-    }
 }

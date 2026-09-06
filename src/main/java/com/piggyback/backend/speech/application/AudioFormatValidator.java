@@ -3,6 +3,7 @@ package com.piggyback.backend.speech.application;
 import com.piggyback.backend.common.exception.BusinessException;
 import com.piggyback.backend.common.exception.ErrorCode;
 import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
 import java.util.Locale;
 import java.util.Map;
 import org.springframework.stereotype.Component;
@@ -97,15 +98,9 @@ public class AudioFormatValidator {
 
         static boolean startsWith(byte[] bytes, int offset, String signature) {
             byte[] signatureBytes = signature.getBytes(StandardCharsets.US_ASCII);
-            if (bytes.length < offset + signatureBytes.length) {
-                return false;
-            }
-            for (int index = 0; index < signatureBytes.length; index++) {
-                if (bytes[offset + index] != signatureBytes[index]) {
-                    return false;
-                }
-            }
-            return true;
+            return bytes.length >= offset + signatureBytes.length
+                    && Arrays.equals(bytes, offset, offset + signatureBytes.length,
+                    signatureBytes, 0, signatureBytes.length);
         }
 
         static int unsigned(byte value) {

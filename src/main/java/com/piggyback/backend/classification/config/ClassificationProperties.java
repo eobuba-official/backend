@@ -4,9 +4,13 @@ import jakarta.validation.constraints.DecimalMax;
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
+import lombok.Getter;
+import lombok.Setter;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.validation.annotation.Validated;
 
+@Getter
+@Setter
 @Validated
 @ConfigurationProperties(prefix = "piggyback.classification")
 public class ClassificationProperties {
@@ -22,30 +26,6 @@ public class ClassificationProperties {
     @Min(2)
     @Max(3)
     private int candidateLimit = 3;
-
-    public double getConfidenceThreshold() {
-        return confidenceThreshold;
-    }
-
-    public void setConfidenceThreshold(double confidenceThreshold) {
-        this.confidenceThreshold = confidenceThreshold;
-    }
-
-    public double getCandidateFloor() {
-        return candidateFloor;
-    }
-
-    public void setCandidateFloor(double candidateFloor) {
-        this.candidateFloor = candidateFloor;
-    }
-
-    public int getCandidateLimit() {
-        return candidateLimit;
-    }
-
-    public void setCandidateLimit(int candidateLimit) {
-        this.candidateLimit = candidateLimit;
-    }
 
     public void validateRange() {
         if (candidateFloor >= confidenceThreshold) {

@@ -132,7 +132,10 @@ public class OpenAiCompatibleTaskClassificationClient implements TaskClassificat
     private Map<String, Object> buildRequest(String model, String utterance) {
         Map<String, Object> request = new LinkedHashMap<>();
         request.put("model", model);
-        applyModelOptions(request, model);
+        String normalizedModel = model == null ? "" : model.trim().toLowerCase(Locale.ROOT);
+        if (!normalizedModel.equals("gpt-5-nano") && !normalizedModel.startsWith("gpt-5-nano-")) {
+            request.put("temperature", 0);
+        }
         request.put("messages", List.of(
                 Map.of("role", "system", "content", systemPrompt()),
                 Map.of("role", "user", "content", utterance)
@@ -146,21 +149,6 @@ public class OpenAiCompatibleTaskClassificationClient implements TaskClassificat
                 )
         ));
         return request;
-    }
-
-    private void applyModelOptions(Map<String, Object> request, String model) {
-        if (!usesDefaultTemperatureOnly(model)) {
-            request.put("temperature", 0);
-        }
-    }
-
-    private boolean usesDefaultTemperatureOnly(String model) {
-        if (model == null) {
-            return false;
-        }
-        String normalizedModel = model.trim().toLowerCase(Locale.ROOT);
-        return normalizedModel.equals("gpt-5-nano")
-                || normalizedModel.startsWith("gpt-5-nano-");
     }
 
     private String systemPrompt() {
