@@ -25,6 +25,7 @@ class SwaggerUiSmokeTest {
                 .andExpect(jsonPath("$.info.title").value("어부바 백엔드 API"))
                 .andExpect(jsonPath("$.info.version").value("v1.2"))
                 .andExpect(jsonPath("$.paths['/api/v1/analyze']").exists())
+                .andExpect(jsonPath("$.paths['/api/v1/speech/transcriptions']").exists())
                 .andExpect(jsonPath("$.paths['/api/v1/consultations/{consultationId}/task-selection']")
                         .exists());
     }
