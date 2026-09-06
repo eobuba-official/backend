@@ -38,6 +38,38 @@ dependencies {
     testAnnotationProcessor 'org.projectlombok:lombok'
 }
 
+sourceSets {
+    gptRegressionTest {
+        compileClasspath += sourceSets.main.output
+        runtimeClasspath += sourceSets.main.output
+    }
+}
+
+configurations {
+    gptRegressionTestImplementation.extendsFrom testImplementation
+    gptRegressionTestRuntimeOnly.extendsFrom testRuntimeOnly
+}
+
 tasks.named('test') {
-    useJUnitPlatform()
+    useJUnitPlatform {
+        excludeTags 'gpt-regression'
+    }
+}
+
+tasks.register('gptRegressionTest', Test) {
+    description = '실제 GPT 프록시를 대상으로 업무 분류 회귀 테스트를 실행합니다.'
+    group = 'verification'
+    testClassesDirs = sourceSets.gptRegressionTest.output.classesDirs
+    classpath = sourceSets.gptRegressionTest.runtimeClasspath
+    useJUnitPlatform {
+        includeTags 'gpt-regression'
+    }
+    maxParallelForks = 1
+    failFast = true
+    shouldRunAfter tasks.named('test')
+    testLogging {
+        events 'passed', 'skipped', 'failed'
+        showStandardStreams = true
+        exceptionFormat = 'short'
+    }
 }
