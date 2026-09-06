@@ -35,7 +35,7 @@ class TaskClassificationWorkflowTest {
 
         assertEquals(consultationId, outcome.consultationId());
         assertEquals("TASK_CONFIRMED", outcome.status());
-        assertEquals("VISIT_REQUIRED", outcome.visitDecision().decision());
+        assertEquals(VisitDecision.VISIT_REQUIRED, outcome.visitDecision().decision());
         assertEquals(7L, store.userId);
         assertEquals(TaskTypeCode.PASSBOOK_REISSUE, store.result.task().taskTypeCode());
     }
