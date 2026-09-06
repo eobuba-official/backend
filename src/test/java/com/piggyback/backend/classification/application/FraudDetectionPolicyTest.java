@@ -18,7 +18,7 @@ class FraudDetectionPolicyTest {
     @Test
     void acceptsAllFiveAllowedPatternsWhenEvidenceAppearsInTheOriginalUtterance() {
         String utterance = "검찰입니다. 안전계좌로 보내고 가족에게 말하지 말고 원격 앱을 지금 당장 설치하세요.";
-        var assessment = policy.evaluate(
+        var patterns = policy.evaluate(
                 utterance,
                 output(
                         false,
@@ -32,7 +32,7 @@ class FraudDetectionPolicyTest {
                 )
         );
 
-        assertTrue(assessment.detected());
+        assertFalse(patterns.isEmpty());
         assertEquals(
                 List.of(
                         FraudPatternType.IMPERSONATION,
@@ -41,14 +41,14 @@ class FraudDetectionPolicyTest {
                         FraudPatternType.REMOTE_CONTROL,
                         FraudPatternType.URGENCY
                 ),
-                assessment.patterns().stream().map(pattern -> pattern.type()).toList()
+                patterns.stream().map(pattern -> pattern.type()).toList()
         );
     }
 
     @Test
     void removesUnknownBlankUnsupportedAndDuplicateEvidenceWhileKeepingOrder() {
         String utterance = "안전계좌로 지금 보내세요";
-        var assessment = policy.evaluate(
+        var patterns = policy.evaluate(
                 utterance,
                 output(
                         true,
@@ -62,36 +62,34 @@ class FraudDetectionPolicyTest {
                 )
         );
 
-        assertTrue(assessment.detected());
-        assertEquals(1, assessment.patterns().size());
-        assertEquals(FraudPatternType.SAFE_ACCOUNT, assessment.patterns().get(0).type());
-        assertEquals("안전계좌", assessment.patterns().get(0).evidence());
+        assertEquals(1, patterns.size());
+        assertEquals(FraudPatternType.SAFE_ACCOUNT, patterns.get(0).type());
+        assertEquals("안전계좌", patterns.get(0).evidence());
     }
 
     @Test
     void usesValidPatternsAsTheSourceOfTruthWhenDetectedFlagIsFalse() {
-        var assessment = policy.evaluate(
+        var patterns = policy.evaluate(
                 "아무에게도 말하지 마",
                 output(false, List.of(pattern("SECRECY", "말하지 마")))
         );
 
-        assertTrue(assessment.detected());
+        assertFalse(patterns.isEmpty());
     }
 
     @Test
     void treatsDetectedFlagAsFalseWhenNoPatternHasValidEvidence() {
-        var assessment = policy.evaluate(
+        var patterns = policy.evaluate(
                 "잔액을 알려줘",
                 output(true, List.of(pattern("URGENCY", "지금 당장")))
         );
 
-        assertFalse(assessment.detected());
-        assertTrue(assessment.patterns().isEmpty());
+        assertTrue(patterns.isEmpty());
     }
 
     @Test
     void suppliesSafeDefaultExplanationWhenLlmExplanationIsBlank() {
-        var assessment = policy.evaluate(
+        var patterns = policy.evaluate(
                 "원격 앱을 설치하세요",
                 new LlmAnalysisOutput(
                         "model",
@@ -107,7 +105,7 @@ class FraudDetectionPolicyTest {
 
         assertEquals(
                 FraudPatternType.REMOTE_CONTROL.defaultExplanation(),
-                assessment.patterns().get(0).explanation()
+                patterns.get(0).explanation()
         );
     }
 

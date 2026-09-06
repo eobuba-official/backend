@@ -19,20 +19,19 @@ public class FraudDetectionPolicy {
     private static final int MAX_EVIDENCE_LENGTH = 500;
     private static final int MAX_EXPLANATION_LENGTH = 500;
 
-    public FraudAssessment evaluate(String utterance, LlmAnalysisOutput output) {
+    public List<ValidatedFraudPattern> evaluate(String utterance, LlmAnalysisOutput output) {
         List<ValidatedFraudPattern> patterns = normalize(utterance, output.fraudPatterns());
-        boolean detected = !patterns.isEmpty();
 
-        if (output.fraudDetected() != detected) {
+        if (output.fraudDetected() == patterns.isEmpty()) {
             log.warn(
                     "LLM fraud signal normalized: reportedDetected={}, effectiveDetected={}, reportedPatternCount={}, validPatternCount={}",
                     output.fraudDetected(),
-                    detected,
+                    !patterns.isEmpty(),
                     output.fraudPatterns().size(),
                     patterns.size()
             );
         }
-        return new FraudAssessment(detected, patterns);
+        return patterns;
     }
 
     private List<ValidatedFraudPattern> normalize(
@@ -86,15 +85,6 @@ public class FraudDetectionPolicy {
         return trimmed.length() <= MAX_EXPLANATION_LENGTH
                 ? trimmed
                 : trimmed.substring(0, MAX_EXPLANATION_LENGTH);
-    }
-
-    public record FraudAssessment(
-            boolean detected,
-            List<ValidatedFraudPattern> patterns
-    ) {
-        public FraudAssessment {
-            patterns = patterns == null ? List.of() : List.copyOf(patterns);
-        }
     }
 
     private record PatternKey(FraudPatternType type, String evidence) {

@@ -142,8 +142,8 @@ class GptTaskClassificationRegressionTest {
                 command,
                 output.classificationSignal()
         );
-        var fraudAssessment = fraudPolicy.evaluate(testCase.utterance(), output);
-        String actualStatus = fraudAssessment.detected()
+        var validatedFraudPatterns = fraudPolicy.evaluate(testCase.utterance(), output);
+        String actualStatus = !validatedFraudPatterns.isEmpty()
                 ? "FRAUD_WARNING"
                 : classification.status().name();
 
@@ -184,7 +184,7 @@ class GptTaskClassificationRegressionTest {
             issues.add("corrected utterance does not contain the expected correction token");
         }
 
-        List<String> effectiveFraudPatterns = fraudAssessment.patterns().stream()
+        List<String> effectiveFraudPatterns = validatedFraudPatterns.stream()
                 .map(pattern -> pattern.type().name())
                 .toList();
         if (!effectiveFraudPatterns.containsAll(testCase.expectedFraudPatterns())) {
@@ -433,11 +433,11 @@ class GptTaskClassificationRegressionTest {
                     local.getProperty("piggyback.integrations.llm.chat-completions-path"),
                     defaults.getProperty("piggyback.integrations.llm.chat-completions-path")
             ));
-            llm.setConnectTimeout(parseDuration(firstNonBlank(
+            llm.setConnectTimeout(Duration.parse(firstNonBlank(
                     defaults.getProperty("piggyback.integrations.llm.connect-timeout"),
                     "PT3S"
             )));
-            llm.setReadTimeout(parseDuration(firstNonBlank(
+            llm.setReadTimeout(Duration.parse(firstNonBlank(
                     defaults.getProperty("piggyback.integrations.llm.read-timeout"),
                     "PT20S"
             )));
@@ -503,20 +503,6 @@ class GptTaskClassificationRegressionTest {
                 }
             }
             return properties;
-        }
-
-        private static Duration parseDuration(String value) {
-            String normalized = value.trim().toLowerCase(Locale.ROOT);
-            if (normalized.startsWith("p")) {
-                return Duration.parse(value.trim().toUpperCase(Locale.ROOT));
-            }
-            if (normalized.endsWith("ms")) {
-                return Duration.ofMillis(Long.parseLong(normalized.substring(0, normalized.length() - 2)));
-            }
-            if (normalized.endsWith("s")) {
-                return Duration.ofSeconds(Long.parseLong(normalized.substring(0, normalized.length() - 1)));
-            }
-            throw new IllegalArgumentException("지원하지 않는 duration 형식입니다.");
         }
 
         private static String firstNonBlank(String... values) {

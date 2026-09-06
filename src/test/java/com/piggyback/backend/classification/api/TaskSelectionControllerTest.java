@@ -1,6 +1,5 @@
 package com.piggyback.backend.classification.api;
 
-import com.piggyback.backend.classification.application.TaskSelectionService;
 import com.piggyback.backend.classification.application.TaskSelectionWorkflow;
 import com.piggyback.backend.classification.domain.ClassificationResult;
 import com.piggyback.backend.domain.TaskTypeCode;
@@ -109,8 +108,7 @@ class TaskSelectionControllerTest {
             ClassificationResultStore store,
             VisitDecisionService visitDecisionService
     ) {
-        var selectionService = new TaskSelectionService(store);
-        var workflow = new TaskSelectionWorkflow(selectionService, visitDecisionService);
+        var workflow = new TaskSelectionWorkflow(store, visitDecisionService);
         return MockMvcBuilders
                 .standaloneSetup(new TaskSelectionController(workflow))
                 .setControllerAdvice(new GlobalExceptionHandler())

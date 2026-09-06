@@ -37,15 +37,13 @@ public class SpeechTranscriptionService {
         byte[] audioBytes = readAudio(audio);
         try {
             audioFormatValidator.validate(audio.getContentType(), audioBytes);
-            try {
-                String transcript = speechRecognitionClient.transcribe(audioBytes);
-                return SpeechTranscriptionResponse.clova(transcript, normalizedBrowserTranscript);
-            } catch (SpeechRecognitionException exception) {
-                if (normalizedBrowserTranscript != null) {
-                    return SpeechTranscriptionResponse.webSpeechFallback(normalizedBrowserTranscript);
-                }
-                throw exception;
+            String transcript = speechRecognitionClient.transcribe(audioBytes);
+            return SpeechTranscriptionResponse.clova(transcript, normalizedBrowserTranscript);
+        } catch (SpeechRecognitionException exception) {
+            if (normalizedBrowserTranscript != null) {
+                return SpeechTranscriptionResponse.webSpeechFallback(normalizedBrowserTranscript);
             }
+            throw exception;
         } finally {
             Arrays.fill(audioBytes, (byte) 0);
         }
