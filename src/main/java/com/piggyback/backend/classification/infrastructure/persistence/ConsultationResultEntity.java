@@ -47,4 +47,20 @@ class ConsultationResultEntity {
         this.confidence = confidence;
         this.classificationStatus = classificationStatus;
     }
+
+    String consultationId() {
+        return consultationId;
+    }
+
+    TaskTypeCode taskTypeCode() {
+        return taskTypeCode;
+    }
+
+    Double confidence() {
+        return confidence;
+    }
+
+    ClassificationStatus classificationStatus() {
+        return classificationStatus;
+    }
 }
