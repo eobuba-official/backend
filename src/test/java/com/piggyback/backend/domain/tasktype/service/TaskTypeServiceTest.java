@@ -1,4 +1,4 @@
-package com.piggyback.backend.tasktype.service;
+package com.piggyback.backend.domain.tasktype.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
@@ -8,7 +8,7 @@ import com.piggyback.backend.domain.TaskTypeCode;
 import com.piggyback.backend.domain.VisitDecision;
 import com.piggyback.backend.entity.TaskType;
 import com.piggyback.backend.repository.TaskTypeRepository;
-import com.piggyback.backend.tasktype.dto.TaskTypeListResponse;
+import com.piggyback.backend.domain.tasktype.dto.TaskTypeListResponse;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;

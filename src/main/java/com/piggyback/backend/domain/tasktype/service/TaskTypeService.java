@@ -1,8 +1,8 @@
-package com.piggyback.backend.tasktype.service;
+package com.piggyback.backend.domain.tasktype.service;
 
 import com.piggyback.backend.entity.TaskType;
 import com.piggyback.backend.repository.TaskTypeRepository;
-import com.piggyback.backend.tasktype.dto.TaskTypeListResponse;
+import com.piggyback.backend.domain.tasktype.dto.TaskTypeListResponse;
 import java.util.Comparator;
 import java.util.List;
 import lombok.RequiredArgsConstructor;

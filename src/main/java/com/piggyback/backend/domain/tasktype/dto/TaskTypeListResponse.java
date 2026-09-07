@@ -1,4 +1,4 @@
-package com.piggyback.backend.tasktype.dto;
+package com.piggyback.backend.domain.tasktype.dto;
 
 import com.piggyback.backend.entity.TaskType;
 import java.util.List;

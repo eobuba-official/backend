@@ -1,8 +1,8 @@
-package com.piggyback.backend.tasktype.controller;
+package com.piggyback.backend.domain.tasktype.controller;
 
 import com.piggyback.backend.common.response.ApiResponse;
-import com.piggyback.backend.tasktype.dto.TaskTypeListResponse;
-import com.piggyback.backend.tasktype.service.TaskTypeService;
+import com.piggyback.backend.domain.tasktype.dto.TaskTypeListResponse;
+import com.piggyback.backend.domain.tasktype.service.TaskTypeService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
