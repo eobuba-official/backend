@@ -16,10 +16,10 @@ import java.util.stream.Collectors;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-class GptRegressionDatasetContractTest {
+class GeminiRegressionDatasetContractTest {
 
     private static final Path DATASET_PATH = Path.of(
-            "src/gptRegressionTest/resources/gpt-regression-dataset.json"
+            "src/geminiRegressionTest/resources/gemini-regression-dataset.json"
     );
 
     @Test
