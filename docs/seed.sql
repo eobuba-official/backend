@@ -12,6 +12,7 @@ DELETE FROM `guardian_notification`;
 DELETE FROM `fraud_detection`;
 DELETE FROM `consultation_result`;
 DELETE FROM `consultation_candidate`;
+DELETE FROM `consultation_checklist_answer`;
 DELETE FROM `consultation`;
 DELETE FROM `congestion_slot`;
 DELETE FROM `branch_task`;
@@ -58,26 +59,26 @@ INSERT INTO `task_visit_rule` (`task_type_code`, `decision`, `reason`, `remote_m
  '[{"channel":"MOBILE_APP","description":"KB스타뱅킹 이체","easyDescription":"휴대폰 앱으로 보내기"},{"channel":"ATM","description":"ATM 계좌이체","easyDescription":"은행 기계로 보내기"}]', NULL);
 
 -- ── 준비물 체크리스트 (방문 필요/확인 필요 업무 위주) ──────────────────
-INSERT INTO `checklist_item` (`task_type_code`, `item_code`, `name`, `easy_description`, `required`, `item_condition`, `display_order`) VALUES
+INSERT INTO `checklist_item` (`task_type_code`, `item_code`, `name`, `easy_description`, `required`, `item_condition`, `condition_code`, `expected_answer`, `display_order`) VALUES
 -- 통장 재발급 (명세 §5 예시 그대로)
-('PASSBOOK_REISSUE', 'ID_CARD',     '신분증',           '주민등록증이나 운전면허증',                TRUE,  NULL, 1),
-('PASSBOOK_REISSUE', 'SEAL',        '도장',             '통장 만들 때 쓴 도장',                     FALSE, '서명으로 만든 통장이면 필요 없어요', 2),
-('PASSBOOK_REISSUE', 'POA',         '위임장',           '다른 사람이 대신 갈 때 필요한 종이',       FALSE, '가족이 대신 방문하는 경우', 3),
-('PASSBOOK_REISSUE', 'FAMILY_CERT', '가족관계증명서',   '가족임을 증명하는 종이',                   FALSE, '가족이 대신 방문하는 경우', 4),
+('PASSBOOK_REISSUE', 'ID_CARD',     '신분증',           '주민등록증이나 운전면허증',                TRUE,  NULL, NULL, NULL, 1),
+('PASSBOOK_REISSUE', 'SEAL',        '도장',             '통장 만들 때 쓴 도장',                     FALSE, '도장으로 만든 통장인 경우', 'USES_SEAL', TRUE, 2),
+('PASSBOOK_REISSUE', 'POA',         '위임장',           '다른 사람이 대신 갈 때 필요한 종이',       FALSE, '다른 사람이 대신 방문하는 경우', 'IS_PROXY', TRUE, 3),
+('PASSBOOK_REISSUE', 'FAMILY_CERT', '가족관계증명서',   '가족임을 증명하는 종이',                   FALSE, '다른 사람이 대신 방문하는 경우', 'IS_PROXY', TRUE, 4),
 -- 대리 업무
-('PROXY_TASK', 'ID_CARD',       '방문자 신분증',    '지점에 가는 분의 주민등록증이나 운전면허증', TRUE,  NULL, 1),
-('PROXY_TASK', 'OWNER_ID_CARD', '본인 신분증',      '업무 당사자의 신분증 (사본 가능 여부는 지점 확인)', TRUE, NULL, 2),
-('PROXY_TASK', 'POA',           '위임장',           '일을 맡긴다는 내용을 적은 종이',            TRUE,  NULL, 3),
-('PROXY_TASK', 'FAMILY_CERT',   '가족관계증명서',   '가족임을 증명하는 종이',                    TRUE,  NULL, 4),
+('PROXY_TASK', 'ID_CARD',       '방문자 신분증',    '지점에 가는 분의 주민등록증이나 운전면허증', TRUE,  NULL, NULL, NULL, 1),
+('PROXY_TASK', 'OWNER_ID_CARD', '본인 신분증',      '업무 당사자의 신분증 (사본 가능 여부는 지점 확인)', TRUE, NULL, NULL, NULL, 2),
+('PROXY_TASK', 'POA',           '위임장',           '일을 맡긴다는 내용을 적은 종이',            TRUE,  NULL, NULL, NULL, 3),
+('PROXY_TASK', 'FAMILY_CERT',   '가족관계증명서',   '가족임을 증명하는 종이',                    TRUE,  NULL, NULL, NULL, 4),
 -- 예금 중도해지
-('DEPOSIT_EARLY_CLOSE', 'ID_CARD',  '신분증',       '주민등록증이나 운전면허증',                TRUE,  NULL, 1),
-('DEPOSIT_EARLY_CLOSE', 'PASSBOOK', '통장',         '해지할 예금 통장',                         FALSE, '통장 없이 만든 예금이면 필요 없어요', 2),
-('DEPOSIT_EARLY_CLOSE', 'SEAL',     '도장',         '예금 만들 때 쓴 도장',                     FALSE, '서명으로 만든 예금이면 필요 없어요', 3),
+('DEPOSIT_EARLY_CLOSE', 'ID_CARD',  '신분증',       '주민등록증이나 운전면허증',                TRUE,  NULL, NULL, NULL, 1),
+('DEPOSIT_EARLY_CLOSE', 'PASSBOOK', '통장',         '해지할 예금 통장',                         FALSE, '예금 통장을 가지고 있는 경우', 'HAS_PASSBOOK', TRUE, 2),
+('DEPOSIT_EARLY_CLOSE', 'SEAL',     '도장',         '예금 만들 때 쓴 도장',                     FALSE, '도장으로 만든 예금인 경우', 'USES_SEAL', TRUE, 3),
 -- 카드 재발급
-('CARD_REISSUE', 'ID_CARD', '신분증', '주민등록증이나 운전면허증', TRUE, NULL, 1),
+('CARD_REISSUE', 'ID_CARD', '신분증', '주민등록증이나 운전면허증', TRUE, NULL, NULL, NULL, 1),
 -- 비밀번호 변경
-('PASSWORD_CHANGE', 'ID_CARD',  '신분증', '주민등록증이나 운전면허증', TRUE,  NULL, 1),
-('PASSWORD_CHANGE', 'PASSBOOK', '통장',   '비밀번호를 바꿀 통장',      FALSE, '통장 비밀번호를 바꾸는 경우', 2);
+('PASSWORD_CHANGE', 'ID_CARD',  '신분증', '주민등록증이나 운전면허증', TRUE,  NULL, NULL, NULL, 1),
+('PASSWORD_CHANGE', 'PASSBOOK', '통장',   '비밀번호를 바꿀 통장',      FALSE, '통장 비밀번호를 바꾸는 경우', 'IS_PASSBOOK_PASSWORD_CHANGE', TRUE, 2);
 
 -- ── 지점 (서울 종로 일대, 명세 §6 예시 기반) ──────────────────────────
 INSERT INTO `branch` (`id`, `name`, `address`, `phone`, `lat`, `lng`, `region_code`) VALUES
