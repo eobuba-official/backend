@@ -42,3 +42,6 @@ out/
 
 ### Local Spring configuration (contains secrets) ###
 /src/main/resources/application-local.properties
+
+# Deployment secrets (EC2-only; never commit)
+.env

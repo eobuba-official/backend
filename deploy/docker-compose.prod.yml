@@ -1,0 +1,69 @@
+# Production compose for the free-tier EC2 demo box (app + MySQL + nginx).
+# Run from /opt/piggyback/deploy with the secrets file one level up:
+#   docker compose --env-file ../.env -f docker-compose.prod.yml up -d
+# NOTE: ${MYSQL_PASSWORD} interpolation is resolved by the CLI --env-file flag;
+# env_file: below only injects variables INTO containers. Both are needed.
+name: piggyback
+
+x-logging: &default-logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "3"
+
+services:
+  app:
+    image: ghcr.io/eobuba-official/backend:${IMAGE_TAG:-latest}
+    restart: unless-stopped
+    env_file: ../.env
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+    mem_limit: 640m
+    depends_on:
+      mysql:
+        condition: service_healthy
+    logging: *default-logging
+
+  mysql:
+    # Pinned minor: an unplanned 8.x bump is a bad surprise on a 1 GiB box.
+    image: mysql:8.0
+    restart: unless-stopped
+    # Memory diet for the free tier (~200 MB saved by performance-schema=OFF).
+    command:
+      - --performance-schema=OFF
+      - --innodb-buffer-pool-size=64M
+      - --skip-log-bin
+      - --max-connections=30
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_PASSWORD}
+      MYSQL_DATABASE: piggyback
+    volumes:
+      - mysql-data:/var/lib/mysql
+      # 01-schema.sql / 02-seed.sql are copied here by the deploy workflow
+      # (docs/ is the single source). Runs only when the volume is empty.
+      - ./initdb:/docker-entrypoint-initdb.d:ro
+    # 127.0.0.1 forces TCP: the entrypoint's temporary init server answers the
+    # unix socket while initdb scripts still run, which would release the app
+    # too early. TCP is refused until the real server is up.
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -uroot -p\"$$MYSQL_ROOT_PASSWORD\" --silent"]
+      interval: 5s
+      retries: 24
+      start_period: 30s
+    logging: *default-logging
+
+  nginx:
+    image: nginx:alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    # nginx resolves proxy_pass upstreams at startup; without this it can exit
+    # with "host not found in upstream" while app waits on mysql healthcheck.
+    depends_on:
+      - app
+    logging: *default-logging
+
+volumes:
+  mysql-data:

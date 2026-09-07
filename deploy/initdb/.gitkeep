@@ -1,0 +1,2 @@
+# Placeholder. The deploy workflow copies docs/schema.sql -> 01-schema.sql and
+# docs/seed.sql -> 02-seed.sql here before scp (docs/ is the single source).

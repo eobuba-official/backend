@@ -1,0 +1,15 @@
+# The real secret control is that CI checkout never contains the untracked
+# application-local.properties (it is baked into locally built jars by
+# processResources). Deploy images must therefore be CI-built only.
+src/main/resources/application-local.properties
+.git/
+.gradle/
+.github/
+.husky/
+docs/
+scripts/
+node_modules/
+# Exclude build output, then re-admit the bootJar the Dockerfile copies.
+# Order matters: the negation must come after the exclusion.
+build/
+!build/libs/*.jar
