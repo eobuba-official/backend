@@ -1,0 +1,113 @@
+# Auto-deploy to the free-tier EC2 demo box on every push/merge to dev.
+# Plan: .omc/plans/ec2-deploy-pipeline.md · Setup guide: docs/DEPLOYMENT.md
+name: Deploy to EC2
+
+on:
+  push:
+    branches: [dev]
+
+permissions:
+  contents: read
+  packages: write
+
+# Serialize deploys; cancelling mid-deploy could leave the image pulled but
+# compose not restarted, so queued runs wait instead.
+concurrency:
+  group: deploy-dev
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      # Tests run against H2 with dummy secrets (src/test/resources) - no
+      # repository secrets are required for a green build.
+      - name: Test & build bootJar
+        run: |
+          chmod +x ./gradlew
+          ./gradlew clean test bootJar --no-daemon
+
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: docker/setup-buildx-action@v3
+
+      # linux/amd64 pinned to match the t2/t3.micro instance.
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          platforms: linux/amd64
+          push: true
+          tags: |
+            ghcr.io/eobuba-official/backend:latest
+            ghcr.io/eobuba-official/backend:${{ github.sha }}
+
+  deploy:
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - uses: actions/checkout@v4
+
+      # docs/ is the single source for the DB bootstrap SQL. Numbered copies
+      # force initdb ordering: schema must exist before seed's DELETEs/INSERTs.
+      - name: Bundle initdb SQL
+        run: |
+          cp docs/schema.sql deploy/initdb/01-schema.sql
+          cp docs/seed.sql deploy/initdb/02-seed.sql
+
+      # strip_components removes the leading "deploy/" from the tar entries;
+      # without it files land at /opt/piggyback/deploy/deploy/.
+      # /opt/piggyback/.env lives OUTSIDE the target and is never touched.
+      - name: Sync deploy config
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          port: ${{ secrets.EC2_SSH_PORT }}
+          source: "deploy/*"
+          target: /opt/piggyback/deploy
+          strip_components: 1
+          overwrite: true
+
+      # --env-file feeds ${MYSQL_PASSWORD} interpolation in the compose file;
+      # -f is required (docker compose does not auto-discover *.prod.yml).
+      # The health gate curls from INSIDE the box (localhost = EC2, not runner).
+      - name: Pull, restart & health-gate
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          port: ${{ secrets.EC2_SSH_PORT }}
+          script_stops: true
+          script: |
+            test -f /opt/piggyback/deploy/docker-compose.prod.yml
+            cd /opt/piggyback/deploy
+            IMAGE_TAG=${{ github.sha }} docker compose --env-file ../.env -f docker-compose.prod.yml pull
+            IMAGE_TAG=${{ github.sha }} docker compose --env-file ../.env -f docker-compose.prod.yml up -d
+            # 60 x 5s: the FIRST deploy runs schema+seed initdb before MySQL
+            # turns healthy, then Spring boots on a t2.micro - 150s was tight.
+            ok=0
+            for i in $(seq 1 60); do
+              if curl -sf http://localhost/api/health > /dev/null; then ok=1; break; fi
+              sleep 5
+            done
+            if [ "$ok" -ne 1 ]; then
+              echo "Health gate FAILED - box left as-is; roll back with the previous sha (docs/DEPLOYMENT.md)"
+              exit 1
+            fi
+            echo "Health gate passed"
+            # Prune only AFTER the gate passes so a failed deploy never loses
+            # the rollback image (relevant when no deploy happened for >336h).
+            docker image prune -af --filter "until=336h"
