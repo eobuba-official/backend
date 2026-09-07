@@ -111,7 +111,7 @@ class ConsultationChecklistServiceTest {
 
     @Test
     void savesNewRelevantAnswer() {
-        givenContext(List.of(conditionalItem("POA", IS_PROXY, true, 1)));
+        givenLockedContext(List.of(conditionalItem("POA", IS_PROXY, true, 1)));
         when(answerRepository.findByConsultationIdAndConditionCode(
                 CONSULTATION_ID.toString(), IS_PROXY
         )).thenReturn(Optional.empty());
@@ -128,7 +128,7 @@ class ConsultationChecklistServiceTest {
 
     @Test
     void rejectsConditionThatIsNotUsedByCurrentTask() {
-        givenContext(List.of(conditionalItem("POA", IS_PROXY, true, 1)));
+        givenLockedContext(List.of(conditionalItem("POA", IS_PROXY, true, 1)));
 
         assertThatThrownBy(() -> service.saveAnswers(
                 USER_ID,
@@ -153,11 +153,22 @@ class ConsultationChecklistServiceTest {
     }
 
     private void givenContext(List<ChecklistItem> items) {
+        givenTaskTypeAndItems(items);
+        when(consultationRepository.findById(CONSULTATION_ID.toString()))
+                .thenReturn(Optional.of(consultation(USER_ID, PASSBOOK_REISSUE.name())));
+    }
+
+    private void givenLockedContext(List<ChecklistItem> items) {
+        givenTaskTypeAndItems(items);
+        when(consultationRepository.findByIdAndUserIdForUpdate(
+                CONSULTATION_ID.toString(), USER_ID
+        )).thenReturn(Optional.of(consultation(USER_ID, PASSBOOK_REISSUE.name())));
+    }
+
+    private void givenTaskTypeAndItems(List<ChecklistItem> items) {
         TaskType taskType = new TaskType(
                 PASSBOOK_REISSUE, "통장 재발급", "통장을 새로 만드는 일", VISIT_REQUIRED
         );
-        when(consultationRepository.findById(CONSULTATION_ID.toString()))
-                .thenReturn(Optional.of(consultation(USER_ID, PASSBOOK_REISSUE.name())));
         when(taskTypeRepository.findById(PASSBOOK_REISSUE)).thenReturn(Optional.of(taskType));
         when(checklistItemRepository.findByTaskTypeCodeOrderByDisplayOrderAsc(PASSBOOK_REISSUE))
                 .thenReturn(items);

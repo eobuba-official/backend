@@ -66,7 +66,7 @@ public class ConsultationChecklistService {
             UUID consultationId,
             ChecklistAnswerRequest request
     ) {
-        ConsultationContext context = getContext(userId, consultationId);
+        ConsultationContext context = getContextForUpdate(userId, consultationId);
         Set<ChecklistConditionCode> relevantCodes = context.items().stream()
                 .map(ChecklistItem::getConditionCode)
                 .filter(java.util.Objects::nonNull)
@@ -120,6 +120,19 @@ public class ConsultationChecklistService {
         Consultation consultation = consultationRepository.findById(consultationId.toString())
                 .filter(found -> found.getUserId().equals(userId))
                 .orElseThrow(() -> new BusinessException(ErrorCode.CONSULTATION_NOT_FOUND));
+        return createContext(consultation);
+    }
+
+    private ConsultationContext getContextForUpdate(Long userId, UUID consultationId) {
+        Consultation consultation = consultationRepository.findByIdAndUserIdForUpdate(
+                        consultationId.toString(),
+                        userId
+                )
+                .orElseThrow(() -> new BusinessException(ErrorCode.CONSULTATION_NOT_FOUND));
+        return createContext(consultation);
+    }
+
+    private ConsultationContext createContext(Consultation consultation) {
         if (consultation.getTaskTypeCode() == null) {
             throw new BusinessException(ErrorCode.INVALID_STATE, "확정된 업무가 없는 상담입니다.");
         }
