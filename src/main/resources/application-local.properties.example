@@ -15,24 +15,20 @@ spring.datasource.password=CHANGE_ME
 abuba.auth.jwt-secret=CHANGE_ME_RANDOM_SECRET_AT_LEAST_32_CHARS
 abuba.auth.expose-mock-code=true
 
-# Hackathon OpenAI-compatible proxy
-# The api-key value is the Bearer team token issued by the organizers.
-piggyback.integrations.llm.provider=openai-compatible-proxy
-piggyback.integrations.llm.base-url=https://port-0-llm-proxy-node-mrlu0vim5f938376.sel3.cloudtype.app/v1
-piggyback.integrations.llm.api-key=CHANGE_ME_TEAM_TOKEN
-piggyback.integrations.llm.chat-completions-path=/chat/completions
-piggyback.integrations.llm.responses-path=/responses
-piggyback.integrations.llm.embeddings-path=/embeddings
-piggyback.integrations.llm.auth-scheme=Bearer
-piggyback.integrations.llm.primary-model=gpt-5-nano
-piggyback.integrations.llm.fallback-model=gpt-4o-mini
-piggyback.integrations.llm.connect-timeout=3s
-piggyback.integrations.llm.read-timeout=15s
-
-# Final presentation switch (official OpenAI):
-# piggyback.integrations.llm.provider=openai
-# piggyback.integrations.llm.base-url=https://api.openai.com/v1
-# piggyback.integrations.llm.api-key=CHANGE_ME_OPENAI_API_KEY
+# Google Gemini API for task classification and fraud guardrails.
+# Prefer setting GEMINI_API_KEY in the environment. This local value is only a fallback.
+piggyback.integrations.gemini.api-key=${GEMINI_API_KEY:CHANGE_ME_GEMINI_API_KEY}
+piggyback.integrations.gemini.base-url=https://generativelanguage.googleapis.com/v1beta
+piggyback.integrations.gemini.model=gemini-3.5-flash-lite
+piggyback.integrations.gemini.connect-timeout=3s
+piggyback.integrations.gemini.read-timeout=20s
+piggyback.integrations.gemini.max-retries=1
+piggyback.integrations.gemini.retry-delay=1s
+# Application safety caps. The actual project quota shown in Google AI Studio remains authoritative.
+piggyback.integrations.gemini.requests-per-minute=15
+piggyback.integrations.gemini.requests-per-day=500
+# Gemini RPD resets at midnight Pacific time.
+piggyback.integrations.gemini.quota-zone=America/Los_Angeles
 
 # NAVER Cloud CLOVA Speech Recognition (CSR) - short-form STT
 # API headers: x-ncp-apigw-api-key-id and x-ncp-apigw-api-key

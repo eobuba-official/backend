@@ -39,30 +39,30 @@ dependencies {
 }
 
 sourceSets {
-    gptRegressionTest {
+    geminiRegressionTest {
         compileClasspath += sourceSets.main.output
         runtimeClasspath += sourceSets.main.output
     }
 }
 
 configurations {
-    gptRegressionTestImplementation.extendsFrom testImplementation
-    gptRegressionTestRuntimeOnly.extendsFrom testRuntimeOnly
+    geminiRegressionTestImplementation.extendsFrom testImplementation
+    geminiRegressionTestRuntimeOnly.extendsFrom testRuntimeOnly
 }
 
 tasks.named('test') {
     useJUnitPlatform {
-        excludeTags 'gpt-regression'
+        excludeTags 'gemini-regression'
     }
 }
 
-tasks.register('gptRegressionTest', Test) {
-    description = '실제 GPT 프록시를 대상으로 업무 분류 회귀 테스트를 실행합니다.'
+tasks.register('geminiRegressionTest', Test) {
+    description = '실제 Gemini API를 대상으로 업무 분류 회귀 테스트를 실행합니다.'
     group = 'verification'
-    testClassesDirs = sourceSets.gptRegressionTest.output.classesDirs
-    classpath = sourceSets.gptRegressionTest.runtimeClasspath
+    testClassesDirs = sourceSets.geminiRegressionTest.output.classesDirs
+    classpath = sourceSets.geminiRegressionTest.runtimeClasspath
     useJUnitPlatform {
-        includeTags 'gpt-regression'
+        includeTags 'gemini-regression'
     }
     maxParallelForks = 1
     failFast = true

@@ -8,8 +8,8 @@ import com.piggyback.backend.classification.domain.ClassificationResult;
 import com.piggyback.backend.classification.domain.FraudPatternType;
 import com.piggyback.backend.classification.domain.InputMethod;
 import com.piggyback.backend.classification.infrastructure.llm.LlmClassificationException;
-import com.piggyback.backend.classification.infrastructure.llm.LlmProperties;
-import com.piggyback.backend.classification.infrastructure.llm.OpenAiCompatibleTaskClassificationClient;
+import com.piggyback.backend.classification.infrastructure.llm.GeminiProperties;
+import com.piggyback.backend.classification.infrastructure.llm.GeminiTaskClassificationClient;
 import com.piggyback.backend.classification.port.LlmAnalysisOutput;
 import com.piggyback.backend.domain.TaskTypeCode;
 import org.junit.jupiter.api.Assumptions;
@@ -39,8 +39,8 @@ import java.util.Set;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-@Tag("gpt-regression")
-class GptTaskClassificationRegressionTest {
+@Tag("gemini-regression")
+class GeminiTaskClassificationRegressionTest {
 
     private static final int MAX_EXTERNAL_REQUESTS = 20;
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
@@ -52,7 +52,7 @@ class GptTaskClassificationRegressionTest {
             .collect(java.util.stream.Collectors.toUnmodifiableSet());
 
     @Test
-    void evaluatesTheFixedDatasetAgainstTheRealGptProxy() throws Exception {
+    void evaluatesTheFixedDatasetAgainstTheRealGeminiApi() throws Exception {
         RegressionProfile profile = RegressionProfile.load();
         Assumptions.assumeTrue(profile.configured(), profile.skipReason());
 
@@ -63,9 +63,9 @@ class GptTaskClassificationRegressionTest {
                 "비용 보호 한도를 초과했습니다. 외부 요청은 최대 " + MAX_EXTERNAL_REQUESTS + "개입니다."
         );
 
-        var client = new OpenAiCompatibleTaskClassificationClient(
+        var client = new GeminiTaskClassificationClient(
                 OBJECT_MAPPER,
-                profile.llmProperties()
+                profile.geminiProperties()
         );
         var classificationPolicy = new ClassificationPolicy(profile.classificationProperties());
         var fraudPolicy = new FraudDetectionPolicy();
@@ -74,7 +74,11 @@ class GptTaskClassificationRegressionTest {
         var promptVersions = new LinkedHashSet<String>();
         Instant startedAt = Instant.now();
 
-        for (RegressionCase testCase : dataset.cases()) {
+        for (int index = 0; index < dataset.cases().size(); index++) {
+            RegressionCase testCase = dataset.cases().get(index);
+            if (index > 0) {
+                Thread.sleep(profile.requestInterval().toMillis());
+            }
             try {
                 LlmAnalysisOutput output = client.analyze(testCase.utterance());
                 observedModels.add(output.model());
@@ -83,7 +87,7 @@ class GptTaskClassificationRegressionTest {
                 results.add(result);
                 System.out.printf(
                         Locale.ROOT,
-                        "GPT regression case=%s status=%s confidence=%.2f passed=%s%n",
+                        "Gemini regression case=%s status=%s confidence=%.2f passed=%s%n",
                         testCase.id(),
                         result.actualStatus(),
                         result.confidence(),
@@ -107,8 +111,8 @@ class GptTaskClassificationRegressionTest {
         List<Path> reportPaths = writeReports(profile.reportDirectory(), report);
         System.out.printf(
                 Locale.ROOT,
-                "GPT regression model=%s promptVersions=%s report=%s%n",
-                profile.llmProperties().getPrimaryModel(),
+                "Gemini regression model=%s promptVersions=%s report=%s%n",
+                profile.geminiProperties().getModel(),
                 promptVersions,
                 reportPaths.get(0)
         );
@@ -262,9 +266,9 @@ class GptTaskClassificationRegressionTest {
     }
 
     private RegressionDataset readDataset() throws IOException {
-        try (InputStream input = getClass().getResourceAsStream("/gpt-regression-dataset.json")) {
+        try (InputStream input = getClass().getResourceAsStream("/gemini-regression-dataset.json")) {
             if (input == null) {
-                throw new IllegalStateException("gpt-regression-dataset.json을 찾을 수 없습니다.");
+                throw new IllegalStateException("gemini-regression-dataset.json을 찾을 수 없습니다.");
             }
             return OBJECT_MAPPER.readValue(input, RegressionDataset.class);
         }
@@ -275,7 +279,7 @@ class GptTaskClassificationRegressionTest {
         String timestamp = DateTimeFormatter.ofPattern("yyyyMMdd-HHmmss")
                 .withZone(ZoneOffset.UTC)
                 .format(report.completedAt());
-        Path timestamped = reportDirectory.resolve("gpt-regression-" + timestamp + ".json");
+        Path timestamped = reportDirectory.resolve("gemini-regression-" + timestamp + ".json");
         Path latest = reportDirectory.resolve("latest.json");
         OBJECT_MAPPER.writerWithDefaultPrettyPrinter().writeValue(timestamped.toFile(), report);
         OBJECT_MAPPER.writerWithDefaultPrettyPrinter().writeValue(latest.toFile(), report);
@@ -383,7 +387,7 @@ class GptTaskClassificationRegressionTest {
             return new RegressionReport(
                     datasetVersion,
                     profile.configurationSource(),
-                    profile.llmProperties().getPrimaryModel(),
+                    profile.geminiProperties().getModel(),
                     Collections.unmodifiableSet(new LinkedHashSet<>(observedModels)),
                     Collections.unmodifiableSet(new LinkedHashSet<>(promptVersions)),
                     startedAt,
@@ -399,8 +403,9 @@ class GptTaskClassificationRegressionTest {
     }
 
     record RegressionProfile(
-            LlmProperties llmProperties,
+            GeminiProperties geminiProperties,
             ClassificationProperties classificationProperties,
+            Duration requestInterval,
             Path reportDirectory,
             String configurationSource,
             String skipReason
@@ -411,36 +416,53 @@ class GptTaskClassificationRegressionTest {
             Properties defaults = loadClasspathProperties();
             Properties local = loadLocalProperties();
             String apiKey = firstNonBlank(
-                    System.getenv("GPT_REGRESSION_API_KEY"),
-                    local.getProperty("piggyback.integrations.llm.api-key")
+                    System.getenv("GEMINI_REGRESSION_API_KEY"),
+                    System.getenv("GEMINI_API_KEY"),
+                    local.getProperty("piggyback.integrations.gemini.api-key")
             );
             String baseUrl = firstNonBlank(
-                    System.getenv("GPT_REGRESSION_BASE_URL"),
-                    local.getProperty("piggyback.integrations.llm.base-url")
+                    System.getenv("GEMINI_REGRESSION_BASE_URL"),
+                    local.getProperty("piggyback.integrations.gemini.base-url"),
+                    defaults.getProperty("piggyback.integrations.gemini.base-url")
             );
             String model = firstNonBlank(
-                    System.getenv("GPT_REGRESSION_MODEL"),
-                    local.getProperty("piggyback.integrations.llm.primary-model"),
-                    defaults.getProperty("piggyback.integrations.llm.primary-model")
+                    System.getenv("GEMINI_REGRESSION_MODEL"),
+                    local.getProperty("piggyback.integrations.gemini.model"),
+                    defaults.getProperty("piggyback.integrations.gemini.model")
             );
 
-            LlmProperties llm = new LlmProperties();
-            llm.setApiKey(apiKey);
-            llm.setBaseUrl(baseUrl);
-            llm.setPrimaryModel(model);
-            llm.setFallbackModel(model);
-            llm.setChatCompletionsPath(firstNonBlank(
-                    local.getProperty("piggyback.integrations.llm.chat-completions-path"),
-                    defaults.getProperty("piggyback.integrations.llm.chat-completions-path")
-            ));
-            llm.setConnectTimeout(Duration.parse(firstNonBlank(
-                    defaults.getProperty("piggyback.integrations.llm.connect-timeout"),
+            GeminiProperties gemini = new GeminiProperties();
+            gemini.setApiKey(apiKey);
+            gemini.setBaseUrl(baseUrl);
+            gemini.setModel(model);
+            gemini.setConnectTimeout(Duration.parse(firstNonBlank(
+                    defaults.getProperty("piggyback.integrations.gemini.connect-timeout"),
                     "PT3S"
             )));
-            llm.setReadTimeout(Duration.parse(firstNonBlank(
-                    defaults.getProperty("piggyback.integrations.llm.read-timeout"),
+            gemini.setReadTimeout(Duration.parse(firstNonBlank(
+                    defaults.getProperty("piggyback.integrations.gemini.read-timeout"),
                     "PT20S"
             )));
+            gemini.setMaxRetries(Integer.parseInt(defaults.getProperty(
+                    "piggyback.integrations.gemini.max-retries",
+                    "0"
+            )));
+            gemini.setRetryDelay(Duration.parse(defaults.getProperty(
+                    "piggyback.integrations.gemini.retry-delay",
+                    "PT1S"
+            )));
+            gemini.setRequestsPerMinute(Integer.parseInt(defaults.getProperty(
+                    "piggyback.integrations.gemini.requests-per-minute",
+                    "15"
+            )));
+            gemini.setRequestsPerDay(Integer.parseInt(defaults.getProperty(
+                    "piggyback.integrations.gemini.requests-per-day",
+                    "500"
+            )));
+            gemini.setQuotaZone(defaults.getProperty(
+                    "piggyback.integrations.gemini.quota-zone",
+                    "America/Los_Angeles"
+            ));
 
             ClassificationProperties classification = new ClassificationProperties();
             classification.setConfidenceThreshold(Double.parseDouble(defaults.getProperty(
@@ -456,22 +478,25 @@ class GptTaskClassificationRegressionTest {
                     "3"
             )));
 
-            String source = !blank(System.getenv("GPT_REGRESSION_API_KEY"))
+            String source = !blank(System.getenv("GEMINI_REGRESSION_API_KEY"))
+                    || !blank(System.getenv("GEMINI_API_KEY"))
                     ? "environment"
-                    : !blank(local.getProperty("piggyback.integrations.llm.api-key"))
+                    : !blank(local.getProperty("piggyback.integrations.gemini.api-key"))
                     ? "ignored-local-profile"
                     : "unconfigured";
             String skipReason = blank(apiKey)
-                    ? "GPT 회귀 테스트를 건너뜁니다: GPT_REGRESSION_API_KEY 또는 로컬 LLM API Key가 없습니다."
-                    : blank(baseUrl)
-                    ? "GPT 회귀 테스트를 건너뜁니다: GPT_REGRESSION_BASE_URL 또는 로컬 LLM base URL이 없습니다."
+                    ? "Gemini 회귀 테스트를 건너뜁니다: GEMINI_REGRESSION_API_KEY 또는 GEMINI_API_KEY가 없습니다."
                     : null;
             return new RegressionProfile(
-                    llm,
+                    gemini,
                     classification,
+                    Duration.parse(defaults.getProperty(
+                            "piggyback.gemini-regression.request-interval",
+                            "PT4S"
+                    )),
                     Path.of(defaults.getProperty(
-                            "piggyback.gpt-regression.report-directory",
-                            "build/reports/gpt-regression"
+                            "piggyback.gemini-regression.report-directory",
+                            "build/reports/gemini-regression"
                     )),
                     source,
                     skipReason
@@ -484,10 +509,10 @@ class GptTaskClassificationRegressionTest {
 
         private static Properties loadClasspathProperties() throws IOException {
             Properties properties = new Properties();
-            try (InputStream input = GptTaskClassificationRegressionTest.class
-                    .getResourceAsStream("/application-gpt-regression.properties")) {
+            try (InputStream input = GeminiTaskClassificationRegressionTest.class
+                    .getResourceAsStream("/application-gemini-regression.properties")) {
                 if (input == null) {
-                    throw new IllegalStateException("application-gpt-regression.properties를 찾을 수 없습니다.");
+                    throw new IllegalStateException("application-gemini-regression.properties를 찾을 수 없습니다.");
                 }
                 properties.load(input);
             }
