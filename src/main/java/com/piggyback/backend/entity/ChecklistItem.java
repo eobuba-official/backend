@@ -1,6 +1,7 @@
 package com.piggyback.backend.entity;
 
 import com.piggyback.backend.domain.TaskTypeCode;
+import com.piggyback.backend.checklist.domain.ChecklistConditionCode;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -49,6 +50,13 @@ public class ChecklistItem {
     @Column(name = "item_condition", length = 300)
     private String itemCondition;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "condition_code", length = 40)
+    private ChecklistConditionCode conditionCode;
+
+    @Column(name = "expected_answer")
+    private Boolean expectedAnswer;
+
     @Column(name = "display_order", nullable = false)
     private int displayOrder;
 
@@ -61,12 +69,28 @@ public class ChecklistItem {
             String itemCondition,
             int displayOrder
     ) {
+        this(taskTypeCode, itemCode, name, easyDescription, required, itemCondition, null, null, displayOrder);
+    }
+
+    public ChecklistItem(
+            TaskTypeCode taskTypeCode,
+            String itemCode,
+            String name,
+            String easyDescription,
+            boolean required,
+            String itemCondition,
+            ChecklistConditionCode conditionCode,
+            Boolean expectedAnswer,
+            int displayOrder
+    ) {
         this.taskTypeCode = taskTypeCode;
         this.itemCode = itemCode;
         this.name = name;
         this.easyDescription = easyDescription;
         this.required = required;
         this.itemCondition = itemCondition;
+        this.conditionCode = conditionCode;
+        this.expectedAnswer = expectedAnswer;
         this.displayOrder = displayOrder;
     }
 }

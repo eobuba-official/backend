@@ -105,6 +105,8 @@ CREATE TABLE `checklist_item` (
 	`easy_description`	VARCHAR(300)	NOT NULL	COMMENT '쉬운 말 설명',
 	`required`	BOOLEAN	NOT NULL	COMMENT 'true=필수, false=조건부',
 	`item_condition`	VARCHAR(300)	NULL	COMMENT '조건부일 때 조건 설명',
+	`condition_code`	VARCHAR(40)	NULL	COMMENT '조건 판정 코드',
+	`expected_answer`	BOOLEAN	NULL	COMMENT '준비물이 포함되는 기대 답변',
 	`display_order`	INT	NOT NULL	DEFAULT 0,
 	CONSTRAINT `PK_CHECKLIST_ITEM` PRIMARY KEY (`id`),
 	CONSTRAINT `UK_CHECKLIST_ITEM` UNIQUE (`task_type_code`, `item_code`),
@@ -129,6 +131,18 @@ CREATE TABLE `consultation` (
 	CONSTRAINT `FK_user_TO_consultation` FOREIGN KEY (`user_id`) REFERENCES `user` (`id`),
 	CONSTRAINT `FK_task_type_TO_consultation` FOREIGN KEY (`task_type_code`) REFERENCES `task_type` (`code`),
 	INDEX `IX_CONSULTATION_USER` (`user_id`, `created_at`)
+) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci;
+
+CREATE TABLE `consultation_checklist_answer` (
+	`id`	BIGINT	NOT NULL	AUTO_INCREMENT,
+	`consultation_id`	CHAR(36)	NOT NULL,
+	`condition_code`	VARCHAR(40)	NOT NULL,
+	`answer_value`	BOOLEAN	NOT NULL,
+	`created_at`	DATETIME	NOT NULL	DEFAULT CURRENT_TIMESTAMP,
+	`updated_at`	DATETIME	NOT NULL	DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+	CONSTRAINT `PK_CONSULTATION_CHECKLIST_ANSWER` PRIMARY KEY (`id`),
+	CONSTRAINT `UK_CONSULTATION_CHECKLIST_ANSWER` UNIQUE (`consultation_id`, `condition_code`),
+	CONSTRAINT `FK_CONSULTATION_TO_CHECKLIST_ANSWER` FOREIGN KEY (`consultation_id`) REFERENCES `consultation` (`id`)
 ) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci;
 
 -- 후보 업무 목록.
