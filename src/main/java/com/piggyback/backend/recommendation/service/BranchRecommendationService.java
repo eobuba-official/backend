@@ -274,6 +274,8 @@ public class BranchRecommendationService {
                             candidate.branch().getName(),
                             candidate.branch().getAddress(),
                             candidate.branch().getPhone(),
+                            candidate.branch().getLat().doubleValue(),
+                            candidate.branch().getLng().doubleValue(),
                             gpsBased ? roundOneDecimal(candidate.distanceKm()) : null
                     ),
                     new VisitTimeResponse(

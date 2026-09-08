@@ -5,6 +5,8 @@ public record BranchResponse(
         String name,
         String address,
         String phone,
+        Double lat,
+        Double lng,
         Double distanceKm
 ) {
 }

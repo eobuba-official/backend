@@ -43,7 +43,7 @@ class BranchRecommendationControllerTest {
     void returnsRecommendationsWrappedInApiResponse() throws Exception {
         RecommendationItemResponse item = new RecommendationItemResponse(
                 1,
-                new BranchResponse(103L, "KB국민은행 종로지점", "서울 종로구 종로 1", "02-000-0000", 0.5),
+                new BranchResponse(103L, "KB국민은행 종로지점", "서울 종로구 종로 1", "02-000-0000", 37.57, 126.982, 0.5),
                 new VisitTimeResponse(LocalDate.of(2026, 9, 4), "내일", "10:00-11:00", "오전 10시"),
                 5,
                 CongestionSource.MOCK,
