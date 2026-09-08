@@ -8,6 +8,9 @@
 --   congestion_slot에 데이터가 없는 조합은 기본 대기 15분
 --   (application.properties piggyback.recommendation.default-wait-minutes).
 
+-- 컨테이너 initdb 등 클라이언트 charset이 latin1인 환경에서 한글 이중 인코딩 방지
+SET NAMES utf8mb4;
+
 SET FOREIGN_KEY_CHECKS = 0;
 DELETE FROM `recommendation`;
 DELETE FROM `guardian_notification`;

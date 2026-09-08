@@ -7,6 +7,9 @@
 -- 운영 메모: sms_verification은 180초 만료로 행이 계속 쌓임.
 -- 해커톤 범위에서는 정리 배치 없이 방치. 운영 전환 시 이벤트 스케줄러로 만료분 삭제.
 
+-- 컨테이너 initdb 등 클라이언트 charset이 latin1인 환경에서 한글 이중 인코딩 방지
+SET NAMES utf8mb4;
+
 CREATE TABLE `task_type` (
 	`code`	VARCHAR(40)	NOT NULL	COMMENT '업무유형 코드 (예: PASSBOOK_REISSUE)',
 	`name`	VARCHAR(100)	NOT NULL	COMMENT '업무명',
