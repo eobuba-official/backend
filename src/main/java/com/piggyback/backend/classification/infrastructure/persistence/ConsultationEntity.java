@@ -10,12 +10,16 @@ import jakarta.persistence.Enumerated;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 
+import java.text.Normalizer;
 import java.time.LocalDateTime;
 import java.util.UUID;
+import java.util.regex.Pattern;
 
 @Entity
 @Table(name = "consultation")
 class ConsultationEntity {
+
+    private static final Pattern WHITESPACE = Pattern.compile("\\s+");
 
     @Id
     @Column(name = "id", length = 36, nullable = false, updatable = false)
@@ -94,12 +98,39 @@ class ConsultationEntity {
         return correctedUtterance;
     }
 
+    String utterance() {
+        return utterance;
+    }
+
     TaskTypeCode taskTypeCode() {
         return taskTypeCode;
+    }
+
+    boolean awaitsCorrectionConfirmation() {
+        return status == ConsultationStatus.UNCLASSIFIED
+                && inputMethod == InputMethod.VOICE
+                && !normalizeForComparison(utterance).equals(normalizeForComparison(correctedUtterance));
     }
 
     void confirm(TaskTypeCode selectedTask) {
         status = ConsultationStatus.TASK_CONFIRMED;
         taskTypeCode = selectedTask;
+    }
+
+    void resolveCorrection(
+            String confirmedUtterance,
+            ConsultationStatus resolvedStatus,
+            double resolvedConfidence,
+            TaskTypeCode resolvedTask
+    ) {
+        correctedUtterance = confirmedUtterance;
+        status = resolvedStatus;
+        confidence = resolvedConfidence;
+        taskTypeCode = resolvedTask;
+    }
+
+    private static String normalizeForComparison(String value) {
+        String unicodeNormalized = Normalizer.normalize(value, Normalizer.Form.NFC);
+        return WHITESPACE.matcher(unicodeNormalized.trim()).replaceAll(" ");
     }
 }

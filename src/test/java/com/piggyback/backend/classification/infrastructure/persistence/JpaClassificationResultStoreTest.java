@@ -22,8 +22,8 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 class JpaClassificationResultStoreTest {
@@ -108,6 +108,76 @@ class JpaClassificationResultStoreTest {
                 resultRepository,
                 fraudDetectionRepository
         );
+    }
+
+    @Test
+    void storesCorrectionConfirmationWithoutFinalizingTheTask() {
+        var command = new ClassificationCommand("잘못 인식된 원문", InputMethod.VOICE, null);
+        var result = ClassificationResult.confirmed(
+                command.utterance(),
+                "통장을 잃어버려서 다시 만들고 싶어",
+                0.9,
+                TaskTypeCode.PASSBOOK_REISSUE,
+                true
+        );
+
+        store.saveAwaitingCorrectionConfirmation(7L, command, result);
+
+        var captor = ArgumentCaptor.forClass(ConsultationEntity.class);
+        verify(consultationRepository).save(captor.capture());
+        assertEquals(ConsultationStatus.UNCLASSIFIED, captor.getValue().status());
+        assertEquals(true, captor.getValue().awaitsCorrectionConfirmation());
+        assertEquals(null, captor.getValue().taskTypeCode());
+        verify(resultRepository).save(org.mockito.ArgumentMatchers.any(ConsultationResultEntity.class));
+    }
+
+    @Test
+    void completesCorrectionConfirmationOnlyFromTheExpectedState() {
+        UUID consultationId = UUID.randomUUID();
+        var consultation = new ConsultationEntity(
+                consultationId,
+                7L,
+                "잘못 인식된 원문",
+                "통장을 다시 만들고 싶어",
+                InputMethod.VOICE,
+                null,
+                ConsultationStatus.UNCLASSIFIED,
+                0.4,
+                null,
+                java.time.LocalDateTime.now()
+        );
+        when(consultationRepository.findOwnedForUpdate(consultationId.toString(), 7L))
+                .thenReturn(Optional.of(consultation));
+        var result = ClassificationResult.confirmed(
+                "잘못 인식된 원문",
+                "통장을 잃어버려서 다시 만들고 싶어",
+                0.93,
+                TaskTypeCode.PASSBOOK_REISSUE,
+                false
+        );
+        var pendingResult = new ConsultationResultEntity(
+                consultationId.toString(),
+                null,
+                0.4,
+                com.piggyback.backend.classification.domain.ClassificationStatus.UNCLASSIFIED
+        );
+        when(resultRepository.findByConsultationId(consultationId.toString()))
+                .thenReturn(Optional.of(pendingResult));
+
+        var outcome = store.completeCorrectionConfirmation(
+                7L,
+                consultationId,
+                result.correctedUtterance(),
+                result,
+                List.of()
+        );
+
+        assertEquals(ClassificationResultStore.ConfirmationOutcome.COMPLETED, outcome);
+        assertEquals(ConsultationStatus.TASK_CONFIRMED, consultation.status());
+        assertEquals(TaskTypeCode.PASSBOOK_REISSUE, consultation.taskTypeCode());
+        assertEquals(result.correctedUtterance(), consultation.correctedUtterance());
+        verify(candidateRepository).deleteAllByConsultationId(consultationId.toString());
+        verify(resultRepository).delete(pendingResult);
     }
 
     @Test

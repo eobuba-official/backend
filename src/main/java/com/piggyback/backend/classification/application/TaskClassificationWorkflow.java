@@ -64,6 +64,14 @@ public class TaskClassificationWorkflow {
                     fraudPatterns
             );
         }
+        if (classification.sttRecheckNeeded() && classification.correctionApplied()) {
+            var consultationId = resultStore.saveAwaitingCorrectionConfirmation(
+                    userId,
+                    command,
+                    classification
+            );
+            return AnalyzeResult.correctionConfirmationRequired(consultationId, classification);
+        }
         var consultationId = resultStore.save(userId, command, classification);
         VisitDecisionView visitDecision = classification.task() == null
                 ? null

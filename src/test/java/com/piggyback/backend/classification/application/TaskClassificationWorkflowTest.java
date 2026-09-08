@@ -128,6 +128,49 @@ class TaskClassificationWorkflowTest {
         assertEquals(1, store.saveCalls);
     }
 
+    @Test
+    void waitsForUserConfirmationInsteadOfReturningUnclassifiedGuidanceForCorrectedVoice() {
+        UUID consultationId = UUID.randomUUID();
+        var store = new RecordingStore(consultationId);
+        var client = (com.piggyback.backend.classification.port.TaskClassificationClient) utterance ->
+                new LlmAnalysisOutput(
+                        "test-model",
+                        "test-prompt",
+                        "통장을 잃어버려서 다시 만들고 싶어",
+                        false,
+                        List.of(),
+                        "PASSBOOK_REISSUE",
+                        0.4,
+                        List.of()
+                );
+        VisitDecisionService visitDecisionService = mock(VisitDecisionService.class);
+        var workflow = new TaskClassificationWorkflow(
+                client,
+                new ClassificationPolicy(new ClassificationProperties()),
+                new FraudDetectionPolicy(),
+                store,
+                visitDecisionService
+        );
+
+        var outcome = workflow.analyze(
+                7L,
+                new ClassificationCommand(
+                        "셀픽스 의료진 등 좋은 울려 버렸어 아동 장 풍전",
+                        InputMethod.VOICE,
+                        null
+                )
+        );
+
+        assertEquals("CORRECTION_CONFIRMATION_REQUIRED", outcome.status());
+        assertEquals("PENDING_CONFIRMATION", outcome.classification().status());
+        assertEquals("통장을 잃어버려서 다시 만들고 싶어", outcome.classification().correctedUtterance());
+        assertEquals(null, outcome.guidance());
+        assertEquals(null, outcome.visitDecision());
+        assertEquals(1, store.awaitingConfirmationSaveCalls);
+        assertEquals(0, store.saveCalls);
+        verify(visitDecisionService, never()).decide(TaskTypeCode.PASSBOOK_REISSUE);
+    }
+
     private WorkflowFixture workflow(
             boolean fraudDetected,
             List<LlmFraudPattern> fraudPatterns,
@@ -177,6 +220,7 @@ class TaskClassificationWorkflowTest {
         private final UUID id;
         private int saveCalls;
         private int suspendedSaveCalls;
+        private int awaitingConfirmationSaveCalls;
         private long userId;
         private ClassificationResult result;
         private List<ValidatedFraudPattern> fraudPatterns = List.of();
@@ -205,6 +249,34 @@ class TaskClassificationWorkflowTest {
             this.result = pendingResult;
             this.fraudPatterns = List.copyOf(fraudPatterns);
             return id;
+        }
+
+        @Override
+        public UUID saveAwaitingCorrectionConfirmation(
+                long userId,
+                ClassificationCommand command,
+                ClassificationResult pendingResult
+        ) {
+            awaitingConfirmationSaveCalls++;
+            this.userId = userId;
+            this.result = pendingResult;
+            return id;
+        }
+
+        @Override
+        public ConfirmationContext findCorrectionConfirmation(long userId, UUID consultationId) {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public ConfirmationOutcome completeCorrectionConfirmation(
+                long userId,
+                UUID consultationId,
+                String confirmedUtterance,
+                ClassificationResult result,
+                List<ValidatedFraudPattern> fraudPatterns
+        ) {
+            throw new UnsupportedOperationException();
         }
 
         @Override

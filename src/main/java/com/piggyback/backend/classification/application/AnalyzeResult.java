@@ -15,7 +15,7 @@ public record AnalyzeResult(
         UUID consultationId,
         @Schema(
                 description = "상담 처리 상태",
-                allowableValues = {"FRAUD_WARNING", "TASK_CONFIRMED", "CANDIDATES_SUGGESTED", "UNCLASSIFIED"},
+                allowableValues = {"FRAUD_WARNING", "CORRECTION_CONFIRMATION_REQUIRED", "TASK_CONFIRMED", "CANDIDATES_SUGGESTED", "UNCLASSIFIED"},
                 example = "TASK_CONFIRMED"
         )
         String status,
@@ -69,6 +69,20 @@ public record AnalyzeResult(
                 "FRAUD_WARNING",
                 FraudCheck.detected(patterns),
                 Classification.suspended(pendingResult),
+                null,
+                null
+        );
+    }
+
+    public static AnalyzeResult correctionConfirmationRequired(
+            UUID consultationId,
+            ClassificationResult pendingResult
+    ) {
+        return new AnalyzeResult(
+                consultationId,
+                "CORRECTION_CONFIRMATION_REQUIRED",
+                FraudCheck.safe(),
+                Classification.pendingCorrection(pendingResult),
                 null,
                 null
         );
@@ -130,7 +144,7 @@ public record AnalyzeResult(
     public record Classification(
             @Schema(
                     description = "분류 상태",
-                    allowableValues = {"CONFIRMED", "CANDIDATES", "UNCLASSIFIED", "SUSPENDED"},
+                    allowableValues = {"CONFIRMED", "CANDIDATES", "UNCLASSIFIED", "PENDING_CONFIRMATION", "SUSPENDED"},
                     example = "CONFIRMED"
             )
             String status,
@@ -175,6 +189,19 @@ public record AnalyzeResult(
                     null,
                     List.of(),
                     pendingResult.sttRecheckNeeded()
+            );
+        }
+
+        private static Classification pendingCorrection(ClassificationResult pendingResult) {
+            return new Classification(
+                    "PENDING_CONFIRMATION",
+                    pendingResult.originalUtterance(),
+                    pendingResult.correctedUtterance(),
+                    pendingResult.correctionApplied(),
+                    null,
+                    null,
+                    List.of(),
+                    true
             );
         }
     }

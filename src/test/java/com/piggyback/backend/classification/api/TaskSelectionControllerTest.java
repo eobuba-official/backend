@@ -136,6 +136,31 @@ class TaskSelectionControllerTest {
         }
 
         @Override
+        public UUID saveAwaitingCorrectionConfirmation(
+                long userId,
+                com.piggyback.backend.classification.application.ClassificationCommand command,
+                ClassificationResult pendingResult
+        ) {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public ConfirmationContext findCorrectionConfirmation(long userId, UUID consultationId) {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public ConfirmationOutcome completeCorrectionConfirmation(
+                long userId,
+                UUID consultationId,
+                String confirmedUtterance,
+                ClassificationResult result,
+                java.util.List<com.piggyback.backend.classification.domain.ValidatedFraudPattern> fraudPatterns
+        ) {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
         public SelectionOutcome confirmCandidate(
                 long userId,
                 UUID consultationId,

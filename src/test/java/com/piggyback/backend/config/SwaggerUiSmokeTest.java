@@ -39,6 +39,11 @@ class SwaggerUiSmokeTest {
                 .andExpect(jsonPath("$.paths['/api/v1/consultations/{consultationId}/task-selection']"
                                 + ".post.summary")
                         .value("업무 후보 선택"))
+                .andExpect(jsonPath("$.paths['/api/v1/consultations/{consultationId}/correction-confirmation']")
+                        .exists())
+                .andExpect(jsonPath("$.paths['/api/v1/consultations/{consultationId}/correction-confirmation']"
+                                + ".post.summary")
+                        .value("Gemini 보정 문장 확인"))
                 .andExpect(jsonPath("$.paths['/api/v1/auth/sms/request'].post.tags[0]").value("인증"))
                 .andExpect(jsonPath("$.paths['/api/v1/auth/sms/verify'].post.responses['401'].description")
                         .value("인증번호 불일치, 만료 또는 인증 시도 횟수 초과"))
