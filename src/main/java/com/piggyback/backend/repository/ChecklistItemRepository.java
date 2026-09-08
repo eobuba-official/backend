@@ -8,4 +8,6 @@ import org.springframework.data.jpa.repository.JpaRepository;
 public interface ChecklistItemRepository extends JpaRepository<ChecklistItem, Long> {
 
     List<ChecklistItem> findByTaskTypeCodeOrderByDisplayOrderAsc(TaskTypeCode taskTypeCode);
+
+    boolean existsByTaskTypeCodeAndItemCode(TaskTypeCode taskTypeCode, String itemCode);
 }
