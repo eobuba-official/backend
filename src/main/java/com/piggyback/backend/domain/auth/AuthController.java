@@ -40,7 +40,8 @@ public class AuthController {
     @Operation(summary = "SMS 인증번호 확인", description = "발송된 인증번호를 확인하고 회원가입에 사용할 인증 토큰을 발급합니다.")
     @ApiResponses({
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "인증번호 확인 완료"),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "인증번호 불일치 또는 만료")
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "요청 정보 형식 오류"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "인증번호 불일치, 만료 또는 인증 시도 횟수 초과")
     })
     public ApiResponse<SmsVerifyResponse> verifySmsCode(@RequestBody @Valid SmsVerifyRequest request) {
         return ApiResponse.success(authService.verifySmsCode(request.phoneNumber(), request.code()));

@@ -46,7 +46,8 @@ public class UserController {
     @ApiResponses({
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "보호자 등록 완료"),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "보호자 정보 검증 실패"),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "JWT 인증 실패")
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "JWT 인증 실패"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "409", description = "보호자 최대 등록 수 3명 초과")
     })
     public ApiResponse<GuardianAddResponse> addGuardian(
                                                         @Parameter(hidden = true) @AuthenticatedUser Long userId,

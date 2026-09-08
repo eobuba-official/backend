@@ -31,6 +31,7 @@ public class ChecklistController {
     )
     @ApiResponses({
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "준비물 조회 완료"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "업무 유형 코드 형식 오류"),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "JWT 인증 실패"),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "지원하지 않는 업무 유형")
     })

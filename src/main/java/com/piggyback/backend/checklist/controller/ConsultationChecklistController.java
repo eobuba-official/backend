@@ -40,7 +40,8 @@ public class ConsultationChecklistController {
     @ApiResponses({
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "조건 질문 조회 완료"),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "JWT 인증 실패"),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "상담 또는 확정된 업무가 없음")
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "상담 또는 업무 유형을 찾을 수 없음"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "409", description = "상담에 확정된 업무가 없음")
     })
     public ApiResponse<ChecklistQuestionsResponse> getQuestions(
             @Parameter(hidden = true)
@@ -60,7 +61,8 @@ public class ConsultationChecklistController {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "답변 저장 또는 수정 완료"),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "질문 코드 또는 답변 형식 오류"),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "JWT 인증 실패"),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "상담 또는 확정된 업무가 없음")
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "상담 또는 업무 유형을 찾을 수 없음"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "409", description = "상담에 확정된 업무가 없음")
     })
     public ApiResponse<ChecklistAnswerResponse> saveAnswers(
             @Parameter(hidden = true)
@@ -80,7 +82,8 @@ public class ConsultationChecklistController {
     @ApiResponses({
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "최종 준비물 조회 완료"),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "JWT 인증 실패"),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "상담 또는 확정된 업무가 없음")
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "상담 또는 업무 유형을 찾을 수 없음"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "409", description = "상담에 확정된 업무가 없음")
     })
     public ApiResponse<ResolvedChecklistResponse> getResolvedChecklist(
             @Parameter(hidden = true)

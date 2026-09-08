@@ -33,10 +33,10 @@ public class BranchRecommendationController {
             description = "상담과 업무 유형을 기준으로 방문 가능한 지점을 필터링하고 거리와 예상 대기시간을 계산해 추천합니다."
     )
     @ApiResponses({
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "지점 추천 완료"),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "위치 또는 조회 조건 형식 오류"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "지점 추천 완료. 추천 가능한 지점이 없으면 빈 목록 반환"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "업무 유형 코드, 위치 또는 조회 조건 형식 오류"),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "JWT 인증 실패"),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "상담 또는 추천 가능한 지점이 없음")
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "상담 또는 업무 유형을 찾을 수 없음")
     })
     public ApiResponse<BranchRecommendationResponse> getRecommendations(
             @Parameter(hidden = true)
