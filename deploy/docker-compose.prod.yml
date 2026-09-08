@@ -37,6 +37,9 @@ services:
     environment:
       MYSQL_ROOT_PASSWORD: ${MYSQL_PASSWORD}
       MYSQL_DATABASE: piggyback
+      # initdb 시 mysql 클라이언트가 locale(POSIX) 따라 latin1로 붙으면
+      # 시드 한글이 이중 인코딩됨 - UTF-8 locale 강제 (SET NAMES와 이중 방어)
+      LANG: C.UTF-8
     volumes:
       - mysql-data:/var/lib/mysql
       # 01-schema.sql / 02-seed.sql are copied here by the deploy workflow
