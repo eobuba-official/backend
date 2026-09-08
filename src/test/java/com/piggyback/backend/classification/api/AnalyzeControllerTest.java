@@ -46,6 +46,7 @@ class AnalyzeControllerTest {
     void returnsConfirmedClassificationUsingTheV12Contract() throws Exception {
         UUID consultationId = UUID.randomUUID();
         var classification = ClassificationResult.confirmed(
+                "내가 동정을 잃어버렸는데 다시 만들고 싶어",
                 "통장을 잃어버렸는데 다시 만들고 싶어",
                 0.93,
                 TaskTypeCode.PASSBOOK_REISSUE,
@@ -75,8 +76,11 @@ class AnalyzeControllerTest {
                 .andExpect(jsonPath("$.data.consultationId").value(consultationId.toString()))
                 .andExpect(jsonPath("$.data.status").value("TASK_CONFIRMED"))
                 .andExpect(jsonPath("$.data.classification.status").value("CONFIRMED"))
+                .andExpect(jsonPath("$.data.classification.originalUtterance")
+                        .value("내가 동정을 잃어버렸는데 다시 만들고 싶어"))
                 .andExpect(jsonPath("$.data.classification.correctedUtterance")
                         .value("통장을 잃어버렸는데 다시 만들고 싶어"))
+                .andExpect(jsonPath("$.data.classification.correctionApplied").value(true))
                 .andExpect(jsonPath("$.data.classification.task.taskTypeCode")
                         .value("PASSBOOK_REISSUE"))
                 .andExpect(jsonPath("$.data.classification.sttRecheckNeeded").value(true))
@@ -119,6 +123,9 @@ class AnalyzeControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.status").value("CANDIDATES_SUGGESTED"))
                 .andExpect(jsonPath("$.data.classification.status").value("CANDIDATES"))
+                .andExpect(jsonPath("$.data.classification.originalUtterance")
+                        .value("돈 관련 업무를 하고 싶어"))
+                .andExpect(jsonPath("$.data.classification.correctionApplied").value(false))
                 .andExpect(jsonPath("$.data.classification.candidates.length()").value(2))
                 .andExpect(jsonPath("$.data.visitDecision").isEmpty());
     }

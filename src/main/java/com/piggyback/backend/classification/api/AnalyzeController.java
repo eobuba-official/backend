@@ -35,7 +35,8 @@ public class AnalyzeController {
                     시니어의 자연어를 8종 은행 업무 코드로 분류합니다.
                     확신도에 따라 CONFIRMED, CANDIDATES, UNCLASSIFIED로 정규화하며,
                     유효한 사기 패턴이 있으면 업무와 방문 판단을 숨기고 FRAUD_WARNING을 먼저 반환합니다.
-                    음성 입력은 inputMethod를 VOICE로 보내며 correctedUtterance를 사용자에게 다시 확인해야 합니다.
+                    Gemini가 원문을 실제로 수정한 경우에만 correctionApplied가 true입니다.
+                    이때 originalUtterance와 correctedUtterance를 비교해 사용자에게 확인받아야 합니다.
                     """
     )
     @ApiResponses({
