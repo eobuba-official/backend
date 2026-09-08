@@ -92,6 +92,18 @@ class GeminiTaskClassificationClientTest {
     }
 
     @Test
+    void instructsGeminiToReturnTheOriginalTextWhenNoCorrectionIsNeeded() {
+        server.expect(once(), requestTo(properties.generateContentUrl()))
+                .andExpect(jsonPath("$.systemInstruction.parts[0].text")
+                        .value(containsString("copy the original user's utterance exactly")))
+                .andRespond(withSuccess(successResponse(), MediaType.APPLICATION_JSON));
+
+        createClient().analyze("통장을 잃어버렸어");
+
+        server.verify();
+    }
+
+    @Test
     void usesConfiguredModelWhenProviderOmitsModelVersion() {
         server.expect(once(), requestTo(properties.generateContentUrl()))
                 .andRespond(withSuccess(successResponseWithoutModel(), MediaType.APPLICATION_JSON));

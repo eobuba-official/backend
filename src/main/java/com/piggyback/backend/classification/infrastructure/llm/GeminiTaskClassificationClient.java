@@ -31,7 +31,7 @@ import java.util.Objects;
 @Component
 public class GeminiTaskClassificationClient implements TaskClassificationClient {
 
-    static final String PROMPT_VERSION = "task-classification-v1.4-gemini-fraud-guardrail";
+    static final String PROMPT_VERSION = "task-classification-v1.5-gemini-correction-comparison";
     private static final String API_KEY_HEADER = "x-goog-api-key";
 
     private static final Logger log = LoggerFactory.getLogger(GeminiTaskClassificationClient.class);
@@ -198,7 +198,8 @@ public class GeminiTaskClassificationClient implements TaskClassificationClient 
         return """
                 You analyze Korean banking requests from senior users.
                 Return only the JSON object required by the supplied schema.
-                Correct obvious speech-recognition mistakes without adding facts.
+                corrected_text may fix only obvious spelling or speech-recognition mistakes without adding facts.
+                If no correction is necessary, copy the original user's utterance exactly into corrected_text.
                 intent and candidates must use only these task codes: %s.
                 candidates must be ordered by likelihood and contain no duplicates.
                 Detect only these voice-phishing patterns:

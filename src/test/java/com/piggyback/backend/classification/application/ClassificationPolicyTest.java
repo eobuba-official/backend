@@ -34,7 +34,7 @@ class ClassificationPolicyTest {
     void confirmsValidIntentAtConfidenceThreshold() {
         var command = new ClassificationCommand("통장 잃어버렸어", InputMethod.TEXT, null);
         var signal = new ClassificationSignal(
-                "통장을 잃어버렸어",
+                "통장 잃어버렸어",
                 "PASSBOOK_REISSUE",
                 0.75,
                 List.of()
@@ -43,6 +43,8 @@ class ClassificationPolicyTest {
         var result = policy.normalize(command, signal);
 
         assertEquals(ClassificationStatus.CONFIRMED, result.status());
+        assertEquals("통장 잃어버렸어", result.originalUtterance());
+        assertFalse(result.correctionApplied());
         assertEquals(TaskTypeCode.PASSBOOK_REISSUE, result.task().taskTypeCode());
         assertTrue(result.candidates().isEmpty());
         assertFalse(result.sttRecheckNeeded());
@@ -142,7 +144,43 @@ class ClassificationPolicyTest {
 
         var result = policy.normalize(command, signal);
 
+        assertEquals("자동이체 바꿔줘", result.originalUtterance());
         assertEquals("자동이체 바꿔줘", result.correctedUtterance());
+        assertFalse(result.correctionApplied());
+    }
+
+    @Test
+    void marksCorrectionOnlyWhenGeminiActuallyChangesTheUtterance() {
+        var command = new ClassificationCommand("통장을 일어버렸어", InputMethod.VOICE, null);
+        var signal = new ClassificationSignal(
+                "통장을 잃어버렸어",
+                "PASSBOOK_REISSUE",
+                0.93,
+                List.of()
+        );
+
+        var result = policy.normalize(command, signal);
+
+        assertEquals("통장을 일어버렸어", result.originalUtterance());
+        assertEquals("통장을 잃어버렸어", result.correctedUtterance());
+        assertTrue(result.correctionApplied());
+    }
+
+    @Test
+    void ignoresWhitespaceOnlyDifferencesWhenDeterminingCorrection() {
+        var command = new ClassificationCommand("  통장을   잃어버렸어  ", InputMethod.VOICE, null);
+        var signal = new ClassificationSignal(
+                "통장을 잃어버렸어",
+                "PASSBOOK_REISSUE",
+                0.93,
+                List.of()
+        );
+
+        var result = policy.normalize(command, signal);
+
+        assertEquals("  통장을   잃어버렸어  ", result.originalUtterance());
+        assertEquals("통장을 잃어버렸어", result.correctedUtterance());
+        assertFalse(result.correctionApplied());
     }
 
     @Test

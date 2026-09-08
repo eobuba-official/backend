@@ -134,8 +134,15 @@ public record AnalyzeResult(
                     example = "CONFIRMED"
             )
             String status,
-            @Schema(description = "STT 오인식을 교정한 확인용 문장")
+            @Schema(description = "Gemini 보정 전 사용자가 전달한 원문", example = "통장을 일어버렸어")
+            String originalUtterance,
+            @Schema(description = "Gemini가 오탈자나 STT 오인식을 보정한 문장", example = "통장을 잃어버렸어")
             String correctedUtterance,
+            @Schema(
+                    description = "공백 정규화 후 원문과 보정 문장이 실제로 다른지 여부. true일 때만 보정 전후 UI를 표시합니다.",
+                    example = "true"
+            )
+            boolean correctionApplied,
             @Schema(description = "LLM 분류 확신도. 사기 경고에서는 숨김", nullable = true)
             Double confidence,
             @Schema(description = "확정된 업무. 확정 상태가 아니면 null", nullable = true)
@@ -148,7 +155,9 @@ public record AnalyzeResult(
         private static Classification from(ClassificationResult result) {
             return new Classification(
                     result.status().name(),
+                    result.originalUtterance(),
                     result.correctedUtterance(),
+                    result.correctionApplied(),
                     result.confidence(),
                     result.task(),
                     result.candidates(),
@@ -159,7 +168,9 @@ public record AnalyzeResult(
         private static Classification suspended(ClassificationResult pendingResult) {
             return new Classification(
                     "SUSPENDED",
+                    pendingResult.originalUtterance(),
                     pendingResult.correctedUtterance(),
+                    pendingResult.correctionApplied(),
                     null,
                     null,
                     List.of(),

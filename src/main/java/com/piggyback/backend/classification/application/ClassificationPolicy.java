@@ -34,6 +34,7 @@ public class ClassificationPolicy {
         var intent = TaskTypeCode.fromExternalValue(signal.intent());
         if (confidence >= properties.getConfidenceThreshold() && intent.isPresent()) {
             return ClassificationResult.confirmed(
+                    command.utterance(),
                     correctedUtterance,
                     confidence,
                     intent.get(),
@@ -46,6 +47,7 @@ public class ClassificationPolicy {
             List<TaskTypeView> candidates = normalizeCandidates(signal);
             if (candidates.size() >= MINIMUM_CANDIDATE_COUNT) {
                 return ClassificationResult.candidates(
+                        command.utterance(),
                         correctedUtterance,
                         confidence,
                         candidates,
@@ -55,6 +57,7 @@ public class ClassificationPolicy {
         }
 
         return ClassificationResult.unclassified(
+                command.utterance(),
                 correctedUtterance,
                 confidence,
                 sttRecheckNeeded
