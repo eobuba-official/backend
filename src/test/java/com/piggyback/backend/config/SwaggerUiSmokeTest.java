@@ -38,7 +38,20 @@ class SwaggerUiSmokeTest {
                         .exists())
                 .andExpect(jsonPath("$.paths['/api/v1/consultations/{consultationId}/task-selection']"
                                 + ".post.summary")
-                        .value("업무 후보 선택"));
+                        .value("업무 후보 선택"))
+                .andExpect(jsonPath("$.paths['/api/v1/auth/sms/request'].post.tags[0]").value("인증"))
+                .andExpect(jsonPath("$.paths['/api/v1/users/me'].get.summary").value("내 정보 조회"))
+                .andExpect(jsonPath("$.paths['/api/v1/users/me'].get.parameters").doesNotExist())
+                .andExpect(jsonPath("$.paths['/api/v1/task-types/{taskTypeCode}/checklist'].get.tags[0]")
+                        .value("준비물"))
+                .andExpect(jsonPath("$.paths['/api/v1/consultations/{consultationId}/checklist'].get.summary")
+                        .value("최종 준비물 조회"))
+                .andExpect(jsonPath("$.paths['/api/v1/branches/recommendations'].get.summary")
+                        .value("방문 지점 및 시간 추천"))
+                .andExpect(jsonPath("$.paths['/api/v1/branches/recommendations'].get.parameters[?(@.name == 'userId')]")
+                        .isEmpty())
+                .andExpect(jsonPath("$.paths['/api/v1/task-types'].get.tags[0]").value("업무 유형"))
+                .andExpect(jsonPath("$.paths['/api/health'].get.tags[0]").value("서버 상태"));
     }
 
     @Test
