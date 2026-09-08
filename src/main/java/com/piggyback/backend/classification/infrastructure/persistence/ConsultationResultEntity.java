@@ -63,4 +63,14 @@ class ConsultationResultEntity {
     ClassificationStatus classificationStatus() {
         return classificationStatus;
     }
+
+    void replace(
+            TaskTypeCode replacementTaskTypeCode,
+            double replacementConfidence,
+            ClassificationStatus replacementStatus
+    ) {
+        taskTypeCode = replacementTaskTypeCode;
+        confidence = replacementConfidence;
+        classificationStatus = replacementStatus;
+    }
 }

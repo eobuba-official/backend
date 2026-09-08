@@ -10,6 +10,12 @@ import java.util.Optional;
 
 interface ConsultationJpaRepository extends JpaRepository<ConsultationEntity, String> {
 
+    @Query("select c from ConsultationEntity c where c.id = :id and c.userId = :userId")
+    Optional<ConsultationEntity> findOwned(
+            @Param("id") String id,
+            @Param("userId") long userId
+    );
+
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("select c from ConsultationEntity c where c.id = :id and c.userId = :userId")
     Optional<ConsultationEntity> findOwnedForUpdate(

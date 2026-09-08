@@ -19,6 +19,22 @@ public interface ClassificationResultStore {
             List<ValidatedFraudPattern> fraudPatterns
     );
 
+    UUID saveAwaitingCorrectionConfirmation(
+            long userId,
+            ClassificationCommand command,
+            ClassificationResult pendingResult
+    );
+
+    ConfirmationContext findCorrectionConfirmation(long userId, UUID consultationId);
+
+    ConfirmationOutcome completeCorrectionConfirmation(
+            long userId,
+            UUID consultationId,
+            String confirmedUtterance,
+            ClassificationResult result,
+            List<ValidatedFraudPattern> fraudPatterns
+    );
+
     SelectionOutcome confirmCandidate(long userId, UUID consultationId, TaskTypeCode selectedTask);
 
     enum SelectionOutcome {
@@ -26,5 +42,22 @@ public interface ClassificationResultStore {
         CONSULTATION_NOT_FOUND,
         INVALID_STATE,
         TASK_NOT_CANDIDATE
+    }
+
+    record ConfirmationContext(ConfirmationOutcome outcome, String originalUtterance) {
+        public static ConfirmationContext ready(String originalUtterance) {
+            return new ConfirmationContext(ConfirmationOutcome.READY, originalUtterance);
+        }
+
+        public static ConfirmationContext of(ConfirmationOutcome outcome) {
+            return new ConfirmationContext(outcome, null);
+        }
+    }
+
+    enum ConfirmationOutcome {
+        READY,
+        COMPLETED,
+        CONSULTATION_NOT_FOUND,
+        INVALID_STATE
     }
 }

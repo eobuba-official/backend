@@ -10,4 +10,6 @@ interface ConsultationCandidateJpaRepository extends JpaRepository<ConsultationC
     boolean existsByConsultationIdAndTaskTypeCode(String consultationId, TaskTypeCode taskTypeCode);
 
     List<ConsultationCandidateEntity> findAllByConsultationIdOrderByDisplayOrder(String consultationId);
+
+    void deleteAllByConsultationId(String consultationId);
 }

@@ -123,7 +123,7 @@ CREATE TABLE `consultation` (
 	`corrected_utterance`	VARCHAR(1000)	NOT NULL	COMMENT 'v1.2: STT 오인식 교정 문장. 화면 표시는 항상 이 값',
 	`input_method`	VARCHAR(10)	NOT NULL	COMMENT 'VOICE | TEXT',
 	`stt_confidence`	DECIMAL(3, 2)	NULL	COMMENT 'STT 인식 확신도 0~1 (로그용, 판정 미사용)',
-	`status`	VARCHAR(30)	NOT NULL,
+	`status`	VARCHAR(30)	NOT NULL COMMENT '확인 대기 API 상태는 UNCLASSIFIED + VOICE + 원문/보정문 차이로 표현',
 	`confidence`	DECIMAL(3, 2)	NULL	COMMENT 'LLM 분류 확신도 0~1',
 	`task_type_code`	VARCHAR(40)	NULL	COMMENT '확정된 업무 (nullable)',
 	`warning_dismissed_at`	DATETIME	NULL	COMMENT 'v1.2: 사기 경고 해제 시각',
@@ -164,7 +164,9 @@ CREATE TABLE `consultation_candidate` (
 	CONSTRAINT `FK_task_type_TO_candidate` FOREIGN KEY (`task_type_code`) REFERENCES `task_type` (`code`)
 ) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci;
 
--- v1.2 신규: 사기 감지로 보류된 분류 결과. dismiss-warning 시 반환.
+-- v1.2 신규: 사기 감지 또는 Gemini 보정 확인으로 보류된 분류 결과.
+-- FRAUD_WARNING에서는 dismiss-warning 시 반환하고, UNCLASSIFIED + VOICE 상담에서는
+-- 원문/보정문 차이와 이 행의 존재를 함께 확인 대기 마커로 사용한다.
 -- classification_status가 CANDIDATES면 후보 목록은 consultation_candidate에서 조회
 CREATE TABLE `consultation_result` (
 	`id`	BIGINT	NOT NULL	AUTO_INCREMENT,

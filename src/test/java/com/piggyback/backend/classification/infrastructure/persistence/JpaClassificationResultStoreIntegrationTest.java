@@ -90,6 +90,78 @@ class JpaClassificationResultStoreIntegrationTest {
     }
 
     @Test
+    void updatesTheSameConsultationAfterCorrectionConfirmation() {
+        var command = new ClassificationCommand("잘못 인식된 원문", InputMethod.VOICE, null);
+        var pending = ClassificationResult.unclassified(
+                command.utterance(),
+                "통장을 잃어버려서 다시 만들고 싶어",
+                0.4,
+                true
+        );
+        var consultationId = store.saveAwaitingCorrectionConfirmation(7L, command, pending);
+        long countBefore = consultationRepository.count();
+
+        var confirmed = ClassificationResult.confirmed(
+                command.utterance(),
+                pending.correctedUtterance(),
+                0.93,
+                TaskTypeCode.PASSBOOK_REISSUE,
+                false
+        );
+        assertEquals(
+                ClassificationResultStore.ConfirmationOutcome.COMPLETED,
+                store.completeCorrectionConfirmation(
+                        7L,
+                        consultationId,
+                        pending.correctedUtterance(),
+                        confirmed,
+                        List.of()
+                )
+        );
+
+        assertEquals(countBefore, consultationRepository.count());
+        var consultation = consultationRepository.findById(consultationId.toString()).orElseThrow();
+        assertEquals(command.utterance(), consultation.utterance());
+        assertEquals(pending.correctedUtterance(), consultation.correctedUtterance());
+        assertEquals(ConsultationStatus.TASK_CONFIRMED, consultation.status());
+        assertEquals(TaskTypeCode.PASSBOOK_REISSUE, consultation.taskTypeCode());
+        assertEquals(false, resultRepository.findByConsultationId(consultationId.toString()).isPresent());
+    }
+
+    @Test
+    void finalUnclassifiedResultCannotBeConfirmedAgain() {
+        var command = new ClassificationCommand("잘못 인식된 원문", InputMethod.VOICE, null);
+        var pending = ClassificationResult.unclassified(
+                command.utterance(),
+                "무슨 업무인지 모르겠어",
+                0.2,
+                true
+        );
+        var consultationId = store.saveAwaitingCorrectionConfirmation(7L, command, pending);
+        var finalResult = ClassificationResult.unclassified(
+                command.utterance(),
+                "무슨 업무인지 모르겠어",
+                0.2,
+                false
+        );
+
+        assertEquals(
+                ClassificationResultStore.ConfirmationOutcome.COMPLETED,
+                store.completeCorrectionConfirmation(
+                        7L,
+                        consultationId,
+                        finalResult.correctedUtterance(),
+                        finalResult,
+                        List.of()
+                )
+        );
+        assertEquals(
+                ClassificationResultStore.ConfirmationOutcome.INVALID_STATE,
+                store.findCorrectionConfirmation(7L, consultationId).outcome()
+        );
+    }
+
+    @Test
     void storesFraudSuspendedClassificationSeparately() {
         var command = new ClassificationCommand("안전계좌로 돈을 보내래", InputMethod.VOICE, null);
         var pending = ClassificationResult.confirmed(
