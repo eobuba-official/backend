@@ -12,10 +12,12 @@ import com.piggyback.backend.common.exception.BusinessException;
 import com.piggyback.backend.common.exception.ErrorCode;
 import com.piggyback.backend.entity.Branch;
 import com.piggyback.backend.entity.CongestionSlot;
+import com.piggyback.backend.entity.Recommendation;
 import com.piggyback.backend.exception.TaskTypeNotFoundException;
 import com.piggyback.backend.recommendation.config.RecommendationProperties;
 import com.piggyback.backend.recommendation.domain.CongestionSource;
 import com.piggyback.backend.recommendation.dto.BranchRecommendationResponse;
+import com.piggyback.backend.recommendation.dto.RecommendationItemResponse;
 import com.piggyback.backend.recommendation.exception.ConsultationNotFoundException;
 import com.piggyback.backend.recommendation.repository.ConsultationReferenceRepository;
 import com.piggyback.backend.repository.BranchTaskRepository;
@@ -32,6 +34,7 @@ import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InOrder;
 import org.mockito.Mock;
 import org.mockito.Mockito;
@@ -73,7 +76,7 @@ class BranchRecommendationServiceTest {
                 recommendationRepository,
                 consultationReferenceRepository,
                 properties,
-                new DistanceCalculator(),
+                new BranchLocator(new DistanceCalculator(), properties),
                 clock
         );
     }
@@ -89,18 +92,26 @@ class BranchRecommendationServiceTest {
         BranchRecommendationResponse response = recommendWithGps(null);
 
         assertThat(response.recommendations()).hasSize(3);
-        assertThat(response.recommendations().get(0).visitTime().date().toString()).isEqualTo("2026-09-04");
-        assertThat(response.recommendations().get(0).visitTime().dayLabel()).isEqualTo("내일");
-        assertThat(response.recommendations().get(0).visitTime().timeLabel()).isEqualTo("오전 10시");
-        assertThat(response.recommendations().get(0).expectedWaitMinutes()).isEqualTo(5);
-        assertThat(response.recommendations().get(0).congestionSource()).isEqualTo(CongestionSource.MOCK);
-        assertThat(response.recommendations().get(0).rank()).isEqualTo(1);
-        assertThat(response.weights().waiting()).isEqualTo(0.6);
-        assertThat(response.weights().distance()).isEqualTo(0.4);
+        RecommendationItemResponse first = response.recommendations().get(0);
+        assertThat(first.visitTime().date().toString()).isEqualTo("2026-09-04");
+        assertThat(first.visitTime().dayLabel()).isEqualTo("내일");
+        assertThat(first.visitTime().timeLabel()).isEqualTo("오전 10시");
+        assertThat(first.expectedWaitMinutes()).isEqualTo(5);
+        assertThat(first.congestionSource()).isEqualTo(CongestionSource.MOCK);
+        assertThat(first.rank()).isEqualTo(1);
+        // 약 0.53km → 도보 8분, 대기 5분 → 총 13분
+        assertThat(first.branch().distanceKm()).isEqualTo(0.5);
+        assertThat(first.walkMinutes()).isEqualTo(8);
+        assertThat(first.totalMinutes()).isEqualTo(13);
+        assertThat(first.sentence()).isEqualTo("내일 오전 10시에 KB국민은행 종로지점 방문을 추천해요. 걸어서 8분, 예상 대기시간은 5분이에요.");
+        assertThat(response.walkingSpeedKmh()).isEqualTo(4.0);
+
         InOrder updateOrder = Mockito.inOrder(consultationReferenceRepository, recommendationRepository);
         updateOrder.verify(consultationReferenceRepository).lockByIdAndUserId(CONSULTATION_ID, USER_ID);
         updateOrder.verify(recommendationRepository).deleteByConsultationId(CONSULTATION_ID.toString());
-        updateOrder.verify(recommendationRepository).saveAll(anyList());
+        ArgumentCaptor<List<Recommendation>> saved = ArgumentCaptor.captor();
+        updateOrder.verify(recommendationRepository).saveAll(saved.capture());
+        assertThat(saved.getValue().get(0).getTotalMinutes()).isEqualByComparingTo(new BigDecimal("12.9"));
     }
 
     @Test
@@ -116,11 +127,14 @@ class BranchRecommendationServiceTest {
             assertThat(result.expectedWaitMinutes()).isEqualTo(15);
             assertThat(result.congestionSource()).isEqualTo(CongestionSource.FALLBACK);
             assertThat(result.visitTime().timeSlot()).isEqualTo("13:00-14:00");
+            assertThat(result.totalMinutes()).isEqualTo(23);
         });
     }
 
     @Test
-    void waitingTimeHasMoreWeightThanDistance() {
+    void nearBranchWinsWhenWalkingTimeOutweighsShorterWait() {
+        // 가까운 지점: 약 0.01km(도보 0분) + 대기 15분 = 15분
+        // 먼 지점: 약 6km(도보 약 90분) + 대기 5분 ≈ 95분
         Branch near = branch(87L, "가까운 지점", 37.5666, 126.9781, "1111011200");
         Branch far = branch(103L, "대기가 짧은 지점", 37.6100, 127.0200, "1111013500");
         givenValidReferences();
@@ -130,8 +144,66 @@ class BranchRecommendationServiceTest {
 
         BranchRecommendationResponse response = recommendWithGps(1);
 
-        assertThat(response.recommendations().get(0).branch().branchId()).isEqualTo(103L);
-        assertThat(response.recommendations().get(0).expectedWaitMinutes()).isEqualTo(5);
+        assertThat(response.recommendations().get(0).branch().branchId()).isEqualTo(87L);
+        assertThat(response.recommendations().get(0).expectedWaitMinutes()).isEqualTo(15);
+        assertThat(response.recommendations().get(0).totalMinutes()).isEqualTo(15);
+    }
+
+    @Test
+    void fartherBranchWinsWhenWaitSavingExceedsExtraWalk() {
+        // 가까운 지점: 도보 0분 + 대기 40분 = 40분
+        // 먼 지점: 약 1km(도보 약 16분) + 대기 5분 ≈ 21분
+        Branch near = branch(87L, "붐비는 지점", 37.5666, 126.9781, "1111011200");
+        Branch far = branch(103L, "한산한 지점", 37.5755, 126.9780, "1111013500");
+        givenValidReferences();
+        when(branchTaskRepository.findBranchesByTaskTypeCode(PASSBOOK_REISSUE)).thenReturn(List.of(near, far));
+        when(congestionSlotRepository.findForRecommendation(Set.of(87L, 103L), Set.of(4, 5)))
+                .thenReturn(List.of(
+                        new CongestionSlot(near, 4, "13:00-14:00", 40),
+                        new CongestionSlot(near, 4, "14:00-15:00", 40),
+                        new CongestionSlot(near, 4, "15:00-16:00", 40),
+                        new CongestionSlot(near, 5, "09:00-10:00", 40),
+                        new CongestionSlot(near, 5, "10:00-11:00", 40),
+                        new CongestionSlot(near, 5, "11:00-12:00", 40),
+                        new CongestionSlot(near, 5, "12:00-13:00", 40),
+                        new CongestionSlot(near, 5, "13:00-14:00", 40),
+                        new CongestionSlot(near, 5, "14:00-15:00", 40),
+                        new CongestionSlot(near, 5, "15:00-16:00", 40),
+                        new CongestionSlot(far, 4, "13:00-14:00", 5)
+                ));
+
+        BranchRecommendationResponse response = recommendWithGps(2);
+
+        assertThat(response.recommendations())
+                .extracting(item -> item.branch().branchId())
+                .containsExactly(103L, 103L);
+        RecommendationItemResponse first = response.recommendations().get(0);
+        assertThat(first.visitTime().timeSlot()).isEqualTo("13:00-14:00");
+        assertThat(first.walkMinutes()).isEqualTo(15);
+        assertThat(first.totalMinutes()).isEqualTo(20);
+    }
+
+    @Test
+    void ranksByTotalMinutesAscending() {
+        Branch jongno = branch(103L, "KB국민은행 종로지점", 37.5700, 126.9820, "1111013500");
+        givenValidReferences();
+        when(branchTaskRepository.findBranchesByTaskTypeCode(PASSBOOK_REISSUE)).thenReturn(List.of(jongno));
+        when(congestionSlotRepository.findForRecommendation(Set.of(103L), Set.of(4, 5)))
+                .thenReturn(List.of(
+                        new CongestionSlot(jongno, 4, "13:00-14:00", 30),
+                        new CongestionSlot(jongno, 5, "10:00-11:00", 3)
+                ));
+
+        BranchRecommendationResponse response = recommendWithGps(5);
+
+        assertThat(response.recommendations())
+                .extracting(RecommendationItemResponse::totalMinutes)
+                .isSorted();
+        assertThat(response.recommendations().get(0).visitTime().timeSlot()).isEqualTo("10:00-11:00");
+        assertThat(response.recommendations().get(0).expectedWaitMinutes()).isEqualTo(3);
+        // 대기 30분 슬롯은 기본 대기 15분 슬롯들보다 뒤로 밀려 상위 5개에 들지 못한다
+        assertThat(response.recommendations())
+                .noneMatch(item -> item.expectedWaitMinutes() == 30);
     }
 
     @Test
@@ -156,6 +228,9 @@ class BranchRecommendationServiceTest {
         assertThat(response.recommendations()).singleElement().satisfies(result -> {
             assertThat(result.branch().branchId()).isEqualTo(103L);
             assertThat(result.branch().distanceKm()).isNull();
+            assertThat(result.walkMinutes()).isNull();
+            assertThat(result.totalMinutes()).isEqualTo(15);
+            assertThat(result.sentence()).isEqualTo("오늘 오후 1시에 종로지점 방문을 추천해요. 예상 대기시간은 15분이에요.");
         });
     }
 
@@ -175,6 +250,14 @@ class BranchRecommendationServiceTest {
                 .isEqualTo(ErrorCode.INVALID_INPUT);
 
         verify(taskTypeRepository, never()).existsById(PASSBOOK_REISSUE);
+    }
+
+    @Test
+    void rejectsLimitAboveFive() {
+        assertThatThrownBy(() -> recommendWithGps(6))
+                .isInstanceOf(BusinessException.class)
+                .extracting("errorCode")
+                .isEqualTo(ErrorCode.INVALID_INPUT);
     }
 
     @Test

@@ -52,8 +52,9 @@ public class Recommendation {
     @Column(name = "expected_wait_minutes", nullable = false)
     private int expectedWaitMinutes;
 
-    @Column(nullable = false, precision = 5, scale = 1)
-    private BigDecimal score;
+    /** 총 소요 시간(분) = 도보 + 예상 대기. 컬럼명은 스키마 호환을 위해 score 유지 */
+    @Column(name = "score", nullable = false, precision = 5, scale = 1)
+    private BigDecimal totalMinutes;
 
     @Column(nullable = false, length = 300)
     private String sentence;
@@ -68,7 +69,7 @@ public class Recommendation {
             LocalDate visitDate,
             String timeSlot,
             int expectedWaitMinutes,
-            BigDecimal score,
+            BigDecimal totalMinutes,
             String sentence
     ) {
         this.consultationId = consultationId;
@@ -77,7 +78,7 @@ public class Recommendation {
         this.visitDate = visitDate;
         this.timeSlot = timeSlot;
         this.expectedWaitMinutes = expectedWaitMinutes;
-        this.score = score;
+        this.totalMinutes = totalMinutes;
         this.sentence = sentence;
         this.createdAt = LocalDateTime.now();
     }
