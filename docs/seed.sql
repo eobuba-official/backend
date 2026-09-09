@@ -14,6 +14,7 @@ SET NAMES utf8mb4;
 SET FOREIGN_KEY_CHECKS = 0;
 DELETE FROM `recommendation`;
 DELETE FROM `guardian_notification`;
+DELETE FROM `guardian_enrollment_notice`;
 DELETE FROM `fraud_detection`;
 DELETE FROM `consultation_result`;
 DELETE FROM `consultation_candidate`;

@@ -1,12 +1,16 @@
 package com.piggyback.backend.domain.user;
 
+import com.piggyback.backend.common.auth.AuthProperties;
 import com.piggyback.backend.common.exception.BusinessException;
 import com.piggyback.backend.common.exception.ErrorCode;
 import com.piggyback.backend.domain.consultation.ConsultationRepository;
+import com.piggyback.backend.domain.notification.GuardianEnrollmentNotifier;
 import com.piggyback.backend.domain.user.dto.UserDtos.ConsultationHistoryItem;
 import com.piggyback.backend.domain.user.dto.UserDtos.ConsultationHistoryResponse;
 import com.piggyback.backend.domain.user.dto.UserDtos.GuardianAddRequest;
 import com.piggyback.backend.domain.user.dto.UserDtos.GuardianAddResponse;
+import com.piggyback.backend.domain.user.dto.UserDtos.GuardianDeclineInfoResponse;
+import com.piggyback.backend.domain.user.dto.UserDtos.GuardianDeclineResponse;
 import com.piggyback.backend.domain.user.dto.UserDtos.GuardianDeleteResponse;
 import com.piggyback.backend.domain.user.dto.UserDtos.GuardianResponse;
 import com.piggyback.backend.domain.user.dto.UserDtos.MeResponse;
@@ -24,6 +28,8 @@ public class UserService {
     private final UserRepository userRepository;
     private final GuardianRepository guardianRepository;
     private final ConsultationRepository consultationRepository;
+    private final GuardianEnrollmentNotifier enrollmentNotifier;
+    private final AuthProperties authProperties;
 
     @Transactional(readOnly = true)
     public MeResponse getMe(Long userId) {
@@ -46,8 +52,30 @@ public class UserService {
                 .phoneNumber(request.phoneNumber())
                 .relation(GuardianRelation.fromLabel(request.relation()))
                 .build());
+        String message = enrollmentNotifier.notifyEnrollment(user, guardian);
         int count = (int) guardianRepository.countByUserIdAndDeletedAtIsNull(userId);
-        return new GuardianAddResponse(GuardianResponse.from(guardian), count);
+        String mockNotification = authProperties.isExposeMockCode() ? message : null;
+        return new GuardianAddResponse(GuardianResponse.from(guardian), count, mockNotification);
+    }
+
+    @Transactional(readOnly = true)
+    public GuardianDeclineInfoResponse getDeclineInfo(String token) {
+        return GuardianDeclineInfoResponse.from(findGuardianByDeclineToken(token));
+    }
+
+    @Transactional
+    public GuardianDeclineResponse declineGuardian(String token) {
+        Guardian guardian = findGuardianByDeclineToken(token);
+        if (guardian.getStatus() == GuardianStatus.DECLINED) {
+            throw new BusinessException(ErrorCode.INVALID_STATE, "이미 알림 수신을 거부한 등록입니다.");
+        }
+        guardian.decline();
+        return new GuardianDeclineResponse(guardian.getStatus().name());
+    }
+
+    private Guardian findGuardianByDeclineToken(String token) {
+        return guardianRepository.findByDeclineTokenAndDeletedAtIsNull(token)
+                .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND, "가족 등록 정보를 찾을 수 없습니다."));
     }
 
     @Transactional

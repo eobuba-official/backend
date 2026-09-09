@@ -7,12 +7,14 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.piggyback.backend.common.auth.AuthProperties;
 import com.piggyback.backend.common.exception.BusinessException;
 import com.piggyback.backend.common.exception.ErrorCode;
 import com.piggyback.backend.domain.consultation.Consultation;
 import com.piggyback.backend.domain.consultation.ConsultationRepository;
 import com.piggyback.backend.domain.consultation.ConsultationStatus;
 import com.piggyback.backend.domain.consultation.InputMethod;
+import com.piggyback.backend.domain.notification.GuardianEnrollmentNotifier;
 import com.piggyback.backend.domain.user.dto.UserDtos.GuardianAddRequest;
 import java.util.List;
 import java.util.Optional;
@@ -26,6 +28,8 @@ class UserServiceTest {
     private UserRepository userRepository;
     private GuardianRepository guardianRepository;
     private ConsultationRepository consultationRepository;
+    private GuardianEnrollmentNotifier enrollmentNotifier;
+    private AuthProperties authProperties;
     private UserService userService;
     private User user;
 
@@ -34,7 +38,10 @@ class UserServiceTest {
         userRepository = mock(UserRepository.class);
         guardianRepository = mock(GuardianRepository.class);
         consultationRepository = mock(ConsultationRepository.class);
-        userService = new UserService(userRepository, guardianRepository, consultationRepository);
+        enrollmentNotifier = mock(GuardianEnrollmentNotifier.class);
+        authProperties = new AuthProperties();
+        userService = new UserService(userRepository, guardianRepository, consultationRepository,
+                enrollmentNotifier, authProperties);
         user = mock(User.class);
         when(user.getId()).thenReturn(USER_ID);
         when(user.getName()).thenReturn("김시니어");
@@ -94,6 +101,74 @@ class UserServiceTest {
 
         assertThat(response.guardianCount()).isEqualTo(2);
         assertThat(response.guardian().relation()).isEqualTo("딸");
+        assertThat(response.guardian().status()).isEqualTo("ACTIVE");
+        verify(enrollmentNotifier).notifyEnrollment(any(), any());
+    }
+
+    @Test
+    void 자녀_추가_시_mock_노출이_켜져있으면_안내_문자를_반환한다() {
+        authProperties.setExposeMockCode(true);
+        when(userRepository.findById(USER_ID)).thenReturn(Optional.of(user));
+        when(guardianRepository.countByUserIdAndDeletedAtIsNull(USER_ID)).thenReturn(0L, 1L);
+        when(guardianRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+        when(enrollmentNotifier.notifyEnrollment(any(), any())).thenReturn("[어부바] 등록 안내");
+
+        var response = userService.addGuardian(USER_ID, new GuardianAddRequest("김딸", "01011112222", "딸"));
+
+        assertThat(response.mockNotification()).isEqualTo("[어부바] 등록 안내");
+    }
+
+    @Test
+    void 거부_토큰으로_등록_정보를_조회한다() {
+        Guardian guardian = Guardian.builder()
+                .user(user).name("김아들").phoneNumber("01098765432").relation(GuardianRelation.SON)
+                .build();
+        when(guardianRepository.findByDeclineTokenAndDeletedAtIsNull(guardian.getDeclineToken()))
+                .thenReturn(Optional.of(guardian));
+
+        var response = userService.getDeclineInfo(guardian.getDeclineToken());
+
+        assertThat(response.userName()).isEqualTo("김시니어");
+        assertThat(response.guardianName()).isEqualTo("김아들");
+        assertThat(response.status()).isEqualTo("ACTIVE");
+    }
+
+    @Test
+    void 거부_처리_시_상태가_DECLINED로_바뀐다() {
+        Guardian guardian = Guardian.builder()
+                .user(user).name("김아들").phoneNumber("01098765432").relation(GuardianRelation.SON)
+                .build();
+        when(guardianRepository.findByDeclineTokenAndDeletedAtIsNull(guardian.getDeclineToken()))
+                .thenReturn(Optional.of(guardian));
+
+        var response = userService.declineGuardian(guardian.getDeclineToken());
+
+        assertThat(response.status()).isEqualTo("DECLINED");
+        assertThat(guardian.getStatus()).isEqualTo(GuardianStatus.DECLINED);
+        assertThat(guardian.getDeclinedAt()).isNotNull();
+    }
+
+    @Test
+    void 이미_거부된_등록의_재거부는_INVALID_STATE다() {
+        Guardian guardian = Guardian.builder()
+                .user(user).name("김아들").phoneNumber("01098765432").relation(GuardianRelation.SON)
+                .build();
+        guardian.decline();
+        when(guardianRepository.findByDeclineTokenAndDeletedAtIsNull(guardian.getDeclineToken()))
+                .thenReturn(Optional.of(guardian));
+
+        assertThatThrownBy(() -> userService.declineGuardian(guardian.getDeclineToken()))
+                .isInstanceOf(BusinessException.class)
+                .extracting("errorCode").isEqualTo(ErrorCode.INVALID_STATE);
+    }
+
+    @Test
+    void 잘못된_거부_토큰은_NOT_FOUND다() {
+        when(guardianRepository.findByDeclineTokenAndDeletedAtIsNull("bad-token")).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> userService.declineGuardian("bad-token"))
+                .isInstanceOf(BusinessException.class)
+                .extracting("errorCode").isEqualTo(ErrorCode.NOT_FOUND);
     }
 
     @Test
