@@ -8,7 +8,8 @@ public record RecommendationItemResponse(
         VisitTimeResponse visitTime,
         int expectedWaitMinutes,
         CongestionSource congestionSource,
-        double score,
+        Integer walkMinutes,
+        int totalMinutes,
         String sentence
 ) {
 }

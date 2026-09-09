@@ -230,7 +230,7 @@ CREATE TABLE `recommendation` (
 	`visit_date`	DATE	NOT NULL,
 	`time_slot`	VARCHAR(20)	NOT NULL	COMMENT '예: 10:00-11:00',
 	`expected_wait_minutes`	INT	NOT NULL,
-	`score`	DECIMAL(5, 1)	NOT NULL	COMMENT '가중 점수 0~100',
+	`score`	DECIMAL(5, 1)	NOT NULL	COMMENT '총 소요 시간(분) = 도보 + 예상 대기 (컬럼명은 호환을 위해 유지)',
 	`sentence`	VARCHAR(300)	NOT NULL	COMMENT '자연어 추천 문장',
 	`created_at`	DATETIME	NOT NULL	DEFAULT CURRENT_TIMESTAMP,
 	CONSTRAINT `PK_RECOMMENDATION` PRIMARY KEY (`id`),

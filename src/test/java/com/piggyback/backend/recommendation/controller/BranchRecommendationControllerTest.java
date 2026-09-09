@@ -13,7 +13,6 @@ import com.piggyback.backend.recommendation.domain.CongestionSource;
 import com.piggyback.backend.recommendation.dto.BranchRecommendationResponse;
 import com.piggyback.backend.recommendation.dto.BranchResponse;
 import com.piggyback.backend.recommendation.dto.RecommendationItemResponse;
-import com.piggyback.backend.recommendation.dto.RecommendationWeightsResponse;
 import com.piggyback.backend.recommendation.dto.VisitTimeResponse;
 import com.piggyback.backend.recommendation.service.BranchRecommendationService;
 import java.time.LocalDate;
@@ -47,7 +46,8 @@ class BranchRecommendationControllerTest {
                 new VisitTimeResponse(LocalDate.of(2026, 9, 4), "내일", "10:00-11:00", "오전 10시"),
                 5,
                 CongestionSource.MOCK,
-                91.5,
+                8,
+                13,
                 "내일 오전 10시에 방문을 추천해요."
         );
         when(service.recommend(
@@ -58,10 +58,7 @@ class BranchRecommendationControllerTest {
                 eq(126.9780),
                 eq(null),
                 eq(null)
-        )).thenReturn(new BranchRecommendationResponse(
-                List.of(item),
-                new RecommendationWeightsResponse(0.6, 0.4)
-        ));
+        )).thenReturn(new BranchRecommendationResponse(List.of(item), 4.0));
 
         mockMvc.perform(get("/api/v1/branches/recommendations")
                         .requestAttr(USER_ID_ATTRIBUTE, 1L)
@@ -76,8 +73,9 @@ class BranchRecommendationControllerTest {
                 .andExpect(jsonPath("$.data.recommendations[0].visitTime.dayLabel").value("내일"))
                 .andExpect(jsonPath("$.data.recommendations[0].expectedWaitMinutes").value(5))
                 .andExpect(jsonPath("$.data.recommendations[0].congestionSource").value("MOCK"))
-                .andExpect(jsonPath("$.data.weights.wait").value(0.6))
-                .andExpect(jsonPath("$.data.weights.distance").value(0.4));
+                .andExpect(jsonPath("$.data.recommendations[0].walkMinutes").value(8))
+                .andExpect(jsonPath("$.data.recommendations[0].totalMinutes").value(13))
+                .andExpect(jsonPath("$.data.walkingSpeedKmh").value(4.0));
     }
 
     @Test

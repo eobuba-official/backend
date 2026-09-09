@@ -30,7 +30,8 @@ public class BranchRecommendationController {
     @GetMapping("/recommendations")
     @Operation(
             summary = "방문 지점 및 시간 추천",
-            description = "상담과 업무 유형을 기준으로 방문 가능한 지점을 필터링하고 거리와 예상 대기시간을 계산해 추천합니다."
+            description = "상담과 업무 유형을 기준으로 방문 가능한 지점을 필터링하고, 총 소요 시간(도보 + 예상 대기, totalMinutes)이 짧은 순으로 추천합니다. "
+                    + "도보 시간은 거리 ÷ 보행속도(walkingSpeedKmh, 기본 4km/h)로 계산하며 regionCode 조회 시에는 대기시간만 비교합니다."
     )
     @ApiResponses({
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "지점 추천 완료. 추천 가능한 지점이 없으면 빈 목록 반환"),

@@ -4,6 +4,6 @@ import java.util.List;
 
 public record BranchRecommendationResponse(
         List<RecommendationItemResponse> recommendations,
-        RecommendationWeightsResponse weights
+        double walkingSpeedKmh
 ) {
 }
