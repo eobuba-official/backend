@@ -11,4 +11,6 @@ public interface GuardianRepository extends JpaRepository<Guardian, Long> {
     long countByUserIdAndDeletedAtIsNull(Long userId);
 
     Optional<Guardian> findByIdAndDeletedAtIsNull(Long id);
+
+    Optional<Guardian> findByDeclineTokenAndDeletedAtIsNull(String declineToken);
 }

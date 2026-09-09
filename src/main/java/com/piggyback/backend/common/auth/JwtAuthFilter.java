@@ -28,6 +28,8 @@ public class JwtAuthFilter extends OncePerRequestFilter {
     protected boolean shouldNotFilter(HttpServletRequest request) {
         String path = request.getRequestURI();
         return path.startsWith("/api/v1/auth/")
+                // 자녀 수신 거부 링크: 앱·로그인 없이 접근하는 공개 API
+                || path.startsWith("/api/v1/guardians/decline")
                 || path.equals("/api/health")
                 || path.equals("/v3/api-docs")
                 || path.startsWith("/v3/api-docs/")

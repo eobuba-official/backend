@@ -8,6 +8,7 @@ import com.piggyback.backend.domain.auth.dto.AuthDtos.SignupRequest;
 import com.piggyback.backend.domain.auth.dto.AuthDtos.SignupResponse;
 import com.piggyback.backend.domain.auth.dto.AuthDtos.SmsRequestResponse;
 import com.piggyback.backend.domain.auth.dto.AuthDtos.SmsVerifyResponse;
+import com.piggyback.backend.domain.notification.GuardianEnrollmentNotifier;
 import com.piggyback.backend.domain.user.Guardian;
 import com.piggyback.backend.domain.user.GuardianRelation;
 import com.piggyback.backend.domain.user.GuardianRepository;
@@ -31,6 +32,7 @@ public class AuthService {
     private final GuardianRepository guardianRepository;
     private final JwtProvider jwtProvider;
     private final AuthProperties authProperties;
+    private final GuardianEnrollmentNotifier enrollmentNotifier;
 
     @Transactional
     public SmsRequestResponse requestSmsCode(String phoneNumber) {
@@ -93,6 +95,7 @@ public class AuthService {
                         .build())
                 .toList();
         guardianRepository.saveAll(guardians);
+        guardians.forEach(guardian -> enrollmentNotifier.notifyEnrollment(user, guardian));
         return new SignupResponse(user.getId(), jwtProvider.createAccessToken(user.getId()));
     }
 }

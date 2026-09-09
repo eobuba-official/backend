@@ -15,6 +15,7 @@ import com.piggyback.backend.domain.auth.dto.AuthDtos.GuardianRequest;
 import com.piggyback.backend.domain.auth.dto.AuthDtos.SignupRequest;
 import com.piggyback.backend.domain.auth.dto.AuthDtos.SmsRequestResponse;
 import com.piggyback.backend.domain.auth.dto.AuthDtos.SmsVerifyResponse;
+import com.piggyback.backend.domain.notification.GuardianEnrollmentNotifier;
 import com.piggyback.backend.domain.user.GuardianRepository;
 import com.piggyback.backend.domain.user.User;
 import com.piggyback.backend.domain.user.UserRepository;
@@ -32,6 +33,7 @@ class AuthServiceTest {
     private UserRepository userRepository;
     private GuardianRepository guardianRepository;
     private JwtProvider jwtProvider;
+    private GuardianEnrollmentNotifier enrollmentNotifier;
     private AuthService authService;
 
     @BeforeEach
@@ -39,12 +41,13 @@ class AuthServiceTest {
         smsVerificationRepository = mock(SmsVerificationRepository.class);
         userRepository = mock(UserRepository.class);
         guardianRepository = mock(GuardianRepository.class);
+        enrollmentNotifier = mock(GuardianEnrollmentNotifier.class);
         AuthProperties properties = new AuthProperties();
         properties.setJwtSecret("test-secret-key-for-auth-service-must-be-long-enough");
         properties.setExposeMockCode(true);
         jwtProvider = new JwtProvider(properties);
         authService = new AuthService(smsVerificationRepository, userRepository, guardianRepository,
-                jwtProvider, properties);
+                jwtProvider, properties, enrollmentNotifier);
     }
 
     private SmsVerification savedVerification(String code, LocalDateTime expiresAt) {

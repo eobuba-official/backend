@@ -36,10 +36,17 @@ CREATE TABLE `guardian` (
 	-- UNIQUE 미적용은 의도: 한 자녀가 부모 두 명의 보호자로 등록될 수 있음
 	`phone_number`	VARCHAR(11)	NOT NULL,
 	`relation`	VARCHAR(20)	NOT NULL	COMMENT '아들 | 딸 | 배우자 | 기타',
+	-- 자녀 동의(opt-out): 등록 즉시 ACTIVE, 안내 문자의 거부 링크로 DECLINED 전환.
+	-- DECLINED 보호자에게는 사기 경고 알림을 발송하지 않는다.
+	`status`	VARCHAR(10)	NOT NULL	DEFAULT 'ACTIVE'	COMMENT 'ACTIVE | DECLINED',
+	`decline_token`	CHAR(36)	NULL	COMMENT '수신 거부 링크 토큰(UUID). 컬럼 추가 이전 행은 NULL',
+	`declined_at`	DATETIME	NULL	COMMENT '수신 거부 시각',
 	`created_at`	DATETIME	NOT NULL	DEFAULT CURRENT_TIMESTAMP,
 	-- guardian_notification이 guardian.id를 FK 참조하므로 소프트 삭제 (알림 이력 보존)
 	`deleted_at`	DATETIME	NULL	COMMENT '소프트 삭제 시각 (NULL = 활성)',
 	CONSTRAINT `PK_GUARDIAN` PRIMARY KEY (`id`),
+	CONSTRAINT `UK_GUARDIAN_DECLINE_TOKEN` UNIQUE (`decline_token`),
+	CONSTRAINT `CK_GUARDIAN_STATUS` CHECK (`status` IN ('ACTIVE','DECLINED')),
 	CONSTRAINT `FK_user_TO_guardian` FOREIGN KEY (`user_id`) REFERENCES `user` (`id`)
 ) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci;
 
@@ -201,6 +208,18 @@ CREATE TABLE `guardian_notification` (
 	CONSTRAINT `PK_GUARDIAN_NOTIFICATION` PRIMARY KEY (`id`),
 	CONSTRAINT `FK_consultation_TO_notification` FOREIGN KEY (`consultation_id`) REFERENCES `consultation` (`id`),
 	CONSTRAINT `FK_guardian_TO_notification` FOREIGN KEY (`guardian_id`) REFERENCES `guardian` (`id`)
+) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci;
+
+-- 가족 등록 안내 Mock SMS 이력. 사기 경고 알림(guardian_notification)은 consultation에
+-- 종속되지만 등록 안내는 상담 없이 발송되므로 별도 테이블로 분리.
+CREATE TABLE `guardian_enrollment_notice` (
+	`id`	BIGINT	NOT NULL	AUTO_INCREMENT,
+	`guardian_id`	BIGINT	NOT NULL,
+	-- 템플릿 + 이름(최대 50자×2) + 거부 URL + 토큰(36자) 합산 여유분
+	`message`	VARCHAR(500)	NOT NULL	COMMENT 'Mock SMS 내용 (수신 거부 링크 포함)',
+	`sent_at`	DATETIME	NOT NULL	DEFAULT CURRENT_TIMESTAMP,
+	CONSTRAINT `PK_GUARDIAN_ENROLLMENT_NOTICE` PRIMARY KEY (`id`),
+	CONSTRAINT `FK_guardian_TO_enrollment_notice` FOREIGN KEY (`guardian_id`) REFERENCES `guardian` (`id`)
 ) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci;
 
 CREATE TABLE `recommendation` (

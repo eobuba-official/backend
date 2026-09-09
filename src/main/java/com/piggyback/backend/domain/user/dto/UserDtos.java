@@ -14,11 +14,11 @@ public final class UserDtos {
     private UserDtos() {
     }
 
-    public record GuardianResponse(Long guardianId, String name, String phoneNumber, String relation) {
+    public record GuardianResponse(Long guardianId, String name, String phoneNumber, String relation, String status) {
 
         public static GuardianResponse from(Guardian guardian) {
             return new GuardianResponse(guardian.getId(), guardian.getName(),
-                    guardian.getPhoneNumber(), guardian.getRelation().getLabel());
+                    guardian.getPhoneNumber(), guardian.getRelation().getLabel(), guardian.getStatus().name());
         }
     }
 
@@ -37,7 +37,25 @@ public final class UserDtos {
     ) {
     }
 
-    public record GuardianAddResponse(GuardianResponse guardian, int guardianCount) {
+    // mockNotification: dev 프로파일(expose-mock-code)에서만 등록 안내 Mock SMS 내용 노출 (시연용)
+    public record GuardianAddResponse(GuardianResponse guardian, int guardianCount, String mockNotification) {
+    }
+
+    public record GuardianDeclineInfoResponse(String userName, String guardianName, String relation, String status) {
+
+        public static GuardianDeclineInfoResponse from(Guardian guardian) {
+            return new GuardianDeclineInfoResponse(guardian.getUser().getName(), guardian.getName(),
+                    guardian.getRelation().getLabel(), guardian.getStatus().name());
+        }
+    }
+
+    public record GuardianDeclineRequest(
+            @NotBlank(message = "토큰은 필수입니다.")
+            String token
+    ) {
+    }
+
+    public record GuardianDeclineResponse(String status) {
     }
 
     public record GuardianDeleteResponse(int guardianCount, boolean fraudAlertDisabled) {
