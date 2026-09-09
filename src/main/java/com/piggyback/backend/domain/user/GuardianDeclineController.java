@@ -11,7 +11,6 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import lombok.RequiredArgsConstructor;
-import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -23,7 +22,6 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequestMapping("/api/v1/guardians")
 @RequiredArgsConstructor
-@Validated
 @Tag(name = "보호자 수신 거부", description = "가족 등록 안내 문자의 링크로 접근하는 공개 API입니다. 인증이 필요하지 않습니다.")
 public class GuardianDeclineController {
 

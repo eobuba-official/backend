@@ -32,7 +32,8 @@ public class GuardianEnrollmentNotice {
     @JoinColumn(name = "guardian_id", nullable = false)
     private Guardian guardian;
 
-    @Column(nullable = false, length = 300)
+    // 템플릿 + 이름(최대 50자×2) + 거부 URL + 토큰(36자) 합산 여유분. 300이면 긴 이름·운영 도메인에서 넘칠 수 있다.
+    @Column(nullable = false, length = 500)
     private String message;
 
     @Column(name = "sent_at", nullable = false, updatable = false)

@@ -215,7 +215,8 @@ CREATE TABLE `guardian_notification` (
 CREATE TABLE `guardian_enrollment_notice` (
 	`id`	BIGINT	NOT NULL	AUTO_INCREMENT,
 	`guardian_id`	BIGINT	NOT NULL,
-	`message`	VARCHAR(300)	NOT NULL	COMMENT 'Mock SMS 내용 (수신 거부 링크 포함)',
+	-- 템플릿 + 이름(최대 50자×2) + 거부 URL + 토큰(36자) 합산 여유분
+	`message`	VARCHAR(500)	NOT NULL	COMMENT 'Mock SMS 내용 (수신 거부 링크 포함)',
 	`sent_at`	DATETIME	NOT NULL	DEFAULT CURRENT_TIMESTAMP,
 	CONSTRAINT `PK_GUARDIAN_ENROLLMENT_NOTICE` PRIMARY KEY (`id`),
 	CONSTRAINT `FK_guardian_TO_enrollment_notice` FOREIGN KEY (`guardian_id`) REFERENCES `guardian` (`id`)

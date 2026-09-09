@@ -37,7 +37,20 @@ class GuardianEnrollmentNotifierTest {
 
         assertThat(message).contains("김시니어", "김아들", "아들")
                 .contains("https://abuba.example/decline?token=" + guardian.getDeclineToken());
-        assertThat(message.length()).isLessThanOrEqualTo(300);
         verify(noticeRepository).save(any(GuardianEnrollmentNotice.class));
+    }
+
+    @Test
+    void 이름이_최대_길이여도_메시지가_컬럼_한도_500자를_넘지_않는다() {
+        String longName = "가".repeat(50);
+        User user = mock(User.class);
+        when(user.getName()).thenReturn(longName);
+        Guardian guardian = Guardian.builder()
+                .user(user).name(longName).phoneNumber("01098765432").relation(GuardianRelation.SPOUSE)
+                .build();
+
+        String message = notifier.notifyEnrollment(user, guardian);
+
+        assertThat(message.length()).isLessThanOrEqualTo(500);
     }
 }
